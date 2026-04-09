@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package blog;
+
+option go_package = "internal/rpc;rpc";
+
+service BlogService {
+  rpc GetPost(GetPostRequest) returns (Post);
+  rpc ListPosts(ListPostsRequest) returns (ListPostsResponse);
+  rpc CreatePost(CreatePostRequest) returns (Post);
+}
+
+message Post {
+  string id = 1;
+  string title = 2;
+  string content = 3;
+  string slug = 4;
+  int64 created_at = 5;
+  int64 updated_at = 6;
+}
+
+message GetPostRequest {
+  string id = 1;
+}
+
+message ListPostsRequest {
+  int32 page = 1;
+  int32 page_size = 2;
+}
+
+message ListPostsResponse {
+  repeated Post posts = 1;
+  int32 total = 2;
+}
+
+message CreatePostRequest {
+  string title = 1;
+  string content = 2;
+  string slug = 3;
+}
