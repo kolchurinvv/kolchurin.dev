@@ -1,4 +1,6 @@
 <script lang="ts">
+import Terminal from "$lib/components/Terminal.svelte";
+
 const contact = {
   phone: "+420 605 376 615",
   email: "vladimir@kolchurin.dev",
@@ -89,7 +91,15 @@ let terminalVisible = $state(false);
 
 <header class="header">
 	<div class="container">
-		<div class="header-grid">
+		<div class="header-content">
+			<div class="avatar">
+				<div class="avatar-placeholder">
+					<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+						<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+						<circle cx="12" cy="7" r="4"></circle>
+					</svg>
+				</div>
+			</div>
 			<div class="header-text">
 				<div class="badge">
 					<span class="badge-dot"></span>
@@ -122,42 +132,15 @@ let terminalVisible = $state(false);
 					</a>
 				</div>
 			</div>
-			<div class="terminal">
-				<div class="terminal-header">
-					<div class="terminal-dots">
-						<span></span>
-						<span></span>
-						<span></span>
-					</div>
-					<span class="terminal-title">~/kolchurin.dev</span>
-				</div>
-				<div class="terminal-body">
-					<div class="terminal-line">
-						<span class="prompt">❯</span>
-						<span class="command">whoami</span>
-					</div>
-					<div class="terminal-output">vladimir kolchurin</div>
-					<div class="terminal-line">
-						<span class="prompt">❯</span>
-						<span class="command">cat skills.json</span>
-					</div>
-					<div class="terminal-output code-block">
-						<pre>{`{
-  "languages": ["Go", "Node.js", "Rust"],
-  "cloud": ["GCP", "AWS", "K8s"],
-  " databases": ["PostgreSQL", "MongoDB"],
-  "devops": ["NixOS", "Docker", "CI/CD"]
-}`}</pre>
-					</div>
-					<div class="terminal-line">
-						<span class="prompt">❯</span>
-						<span class="cursor">_</span>
-					</div>
-				</div>
-			</div>
 		</div>
 	</div>
 </header>
+
+<section class="hero-terminal">
+	<div class="container">
+		<Terminal />
+	</div>
+</section>
 
 <main>
 	<section class="section">
@@ -472,12 +455,27 @@ let terminalVisible = $state(false);
 		opacity: 0.3;
 	}
 
-	.header-grid {
+	.header-content {
 		position: relative;
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: 4rem;
+		display: flex;
 		align-items: center;
+		gap: 3rem;
+	}
+
+	.avatar {
+		flex-shrink: 0;
+	}
+
+	.avatar-placeholder {
+		width: 180px;
+		height: 180px;
+		border-radius: 50%;
+		background: linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%);
+		border: 3px solid var(--border);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: var(--text-muted);
 	}
 
 	.badge {
@@ -559,108 +557,7 @@ let terminalVisible = $state(false);
 		flex-shrink: 0;
 	}
 
-	.terminal {
-		background-color: var(--bg-secondary);
-		border: 1px solid var(--border);
-		border-radius: 12px;
-		overflow: hidden;
-		box-shadow:
-			0 25px 50px -12px rgba(0, 0, 0, 0.5),
-			0 0 0 1px rgba(255, 255, 255, 0.05);
-	}
 
-	.terminal-header {
-		display: flex;
-		align-items: center;
-		gap: 1rem;
-		padding: 0.75rem 1rem;
-		background-color: var(--bg-tertiary);
-		border-bottom: 1px solid var(--border);
-	}
-
-	.terminal-dots {
-		display: flex;
-		gap: 0.5rem;
-	}
-
-	.terminal-dots span {
-		width: 12px;
-		height: 12px;
-		border-radius: 50%;
-	}
-
-	.terminal-dots span:nth-child(1) {
-		background-color: #ef4444;
-	}
-	.terminal-dots span:nth-child(2) {
-		background-color: #eab308;
-	}
-	.terminal-dots span:nth-child(3) {
-		background-color: #22c55e;
-	}
-
-	.terminal-title {
-		font-size: 0.8rem;
-		color: var(--text-muted);
-		font-family: monospace;
-	}
-
-	.terminal-body {
-		padding: 1.5rem;
-		font-family: monospace;
-		font-size: 0.9rem;
-	}
-
-	.terminal-line {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		margin-bottom: 0.5rem;
-	}
-
-	.prompt {
-		color: var(--accent);
-	}
-
-	.command {
-		color: var(--text-primary);
-	}
-
-	.terminal-output {
-		color: var(--text-secondary);
-		margin-bottom: 1rem;
-		padding-left: 1.25rem;
-	}
-
-	.code-block {
-		background-color: var(--bg-primary);
-		border-radius: 8px;
-		padding: 1rem;
-		overflow-x: auto;
-	}
-
-	.code-block pre {
-		margin: 0;
-		color: var(--text-primary);
-	}
-
-	.cursor {
-		display: inline-block;
-		width: 10px;
-		height: 1.2em;
-		background-color: var(--accent);
-		animation: blink 1s step-end infinite;
-	}
-
-	@keyframes blink {
-		0%,
-		100% {
-			opacity: 1;
-		}
-		50% {
-			opacity: 0;
-		}
-	}
 
 	.section-header {
 		display: flex;
@@ -1043,10 +940,34 @@ let terminalVisible = $state(false);
 		font-size: 0.9rem;
 	}
 
+	.hero-terminal {
+		padding: 3rem 0;
+		background: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+		border-bottom: 1px solid var(--border);
+	}
+
+	.hero-terminal :global(.terminal) {
+		max-width: 900px;
+		margin: 0 auto;
+	}
+
 	@media (max-width: 900px) {
-		.header-grid {
-			grid-template-columns: 1fr;
-			gap: 3rem;
+		.header-content {
+			flex-direction: column;
+			text-align: center;
+		}
+
+		.avatar-placeholder {
+			width: 150px;
+			height: 150px;
+		}
+
+		.focus {
+			max-width: none;
+		}
+
+		.contact {
+			align-items: center;
 		}
 
 		.skill-grid {
