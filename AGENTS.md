@@ -291,6 +291,12 @@ Biome v2 configuration uses `assist` section for organize imports:
 
 ## Git Conventions
 
+**IMPORTANT: Commit and Push Policy**
+- **NEVER commit changes without explicitly asking for permission first**
+- **NEVER push to any remote branch without explicit permission**
+- If the user asks to "save" or "commit" work, create the commit locally and ask if they want to push
+- Always ask before committing, even if the user seems to want changes committed
+
 **Branch Naming**
 ```
 feature/add-blog-posts
