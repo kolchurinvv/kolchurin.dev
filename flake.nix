@@ -13,14 +13,13 @@
       in
       {
         devShells.default = pkgs.mkShell rec {
-          GOPATH=$HOME/go;
-          PATH=$GOPATH/bin:$PATH
           buildInputs = with pkgs; [
             go
-            golsp
+            gopls
             golangci-lint
 
             bun
+            vitejs
 
             protobuf
             protoc-gen-go
