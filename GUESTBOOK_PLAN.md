@@ -18,6 +18,6 @@
 - [ ] Handle and display error responses from the backend (e.g., "Too many requests").
 
 ## Infrastructure & Testing
-- [ ] Update `make generate` or البروتوكول buffer generation scripts if necessary.
+- [ ] Update `make generate`  if necessary.
 - [ ] Write unit tests for the Go backend storage and rate limiting logic.
 - [ ] Perform end-to-end testing of the full flow from frontend to backend.
