@@ -1,0 +1,51 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mirotalk
+  namespace: kolchurin-dev
+  annotations:
+    kubernetes.io/ingress.class: traefik
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+spec:
+  tls:
+    - hosts:
+        - kolchurin.dev
+      secretName: mirotalk-tls
+  rules:
+    - host: kolchurin.dev
+      http:
+        paths:
+          - path: /meet/miro
+            pathType: Prefix
+            backend:
+              service:
+                name: mirotalk
+                port:
+                  number: 3000
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mirotalk-ws
+  namespace: kolchurin-dev
+  annotations:
+    kubernetes.io/ingress.class: traefik
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+spec:
+  tls:
+    - hosts:
+        - kolchurin.dev
+      secretName: mirotalk-tls
+  rules:
+    - host: kolchurin.dev
+      http:
+        paths:
+          - path: /meet/miro/socket.io
+            pathType: Prefix
+            backend:
+              service:
+                name: mirotalk
+                port:
+                  number: 3000

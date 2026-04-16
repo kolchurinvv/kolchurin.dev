@@ -9,6 +9,8 @@ resources:
   - deployments.yaml
   - services.yaml
   - ingress.yaml
+  - mirotalk-deployment.yaml
+  - mirotalk-ingress.yaml
 
 commonLabels:
   app.kubernetes.io/part-of: kolchurin-dev
