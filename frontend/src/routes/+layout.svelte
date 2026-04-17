@@ -44,14 +44,26 @@ function updateBtnIcon() {
 </script>
 
 <svelte:head>
-	<title>Vladimir Kolchurin</title>
-	<meta name="description" content="Backend & Systems-oriented Engineer specializing in resilient architectures and distributed systems" />
-	<link rel="preconnect" href="https://fonts.googleapis.com" />
-	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
-	<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
-	<link href="https://cdn.jsdelivr.net/npm/beercss@4.0.20/dist/cdn/beer.min.css" rel="stylesheet" />
-	<script type="module" src="https://cdn.jsdelivr.net/npm/beercss@4.0.20/dist/cdn/beer.min.js"></script>
-	<script type="module" src="https://cdn.jsdelivr.net/npm/material-dynamic-colors@1.1.4/dist/cdn/material-dynamic-colors.min.js"></script>
+  <title>Vladimir Kolchurin</title>
+  <meta
+    name="description"
+    content="Backend & Systems-oriented Engineer specializing in resilient architectures and distributed systems"
+  >
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap"
+    rel="stylesheet"
+  >
+  <link href="https://cdn.jsdelivr.net/npm/beercss@4.0.20/dist/cdn/beer.min.css" rel="stylesheet">
+  <script
+    type="module"
+    src="https://cdn.jsdelivr.net/npm/beercss@4.0.20/dist/cdn/beer.min.js"
+  ></script>
+  <script
+    type="module"
+    src="https://cdn.jsdelivr.net/npm/material-dynamic-colors@1.1.4/dist/cdn/material-dynamic-colors.min.js"
+  ></script>
 </svelte:head>
 
 <button
@@ -67,33 +79,35 @@ function updateBtnIcon() {
 {@render children()}
 
 <style>
-  :global(body.light) {
-    --bg-primary: #f8f8f8;
-    --bg-secondary: #ffffff;
-    --bg-tertiary: #f0f0f0;
-    --text-primary: #18181b;
-    --text-secondary: #52525b;
-    --text-muted: #a1a1aa;
-    --accent: #0891b2;
-    --accent-dim: #22d3ee;
-    --border: #d4d4d8;
-    --code-bg: #f4f4f5;
-  }
+:global(body.light) {
+  --bg-primary: #f8f8f8;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f0f0f0;
+  --text-primary: #18181b;
+  --text-secondary: #52525b;
+  --text-muted: #a1a1aa;
+  --accent: #0891b2;
+  --accent-dim: #22d3ee;
+  --border: #d4d4d8;
+  --code-bg: #f4f4f5;
+}
 
-  .theme-toggle {
-    position: fixed;
-    top: 1rem;
-    right: 1rem;
-    z-index: 1000;
-    background: var(--bg-secondary);
-    border: 1px solid var(--border);
-    color: var(--text-primary);
-    cursor: pointer;
-    transition: border-color 0.2s, color 0.2s;
-  }
+.theme-toggle {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 1000;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition:
+    border-color 0.2s,
+    color 0.2s;
+}
 
-  .theme-toggle:hover {
-    border-color: var(--accent);
-    color: var(--accent);
-  }
+.theme-toggle:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
 </style>
