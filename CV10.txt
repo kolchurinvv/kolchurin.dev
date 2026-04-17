@@ -1,0 +1,63 @@
+Vladimir Kolchurin
++420 605 376 615 | vladimir@kolchurin.dev | github.com/kolchurinvv
+Summary
+Backend & Systems-oriented Engineer with a focus on Node.js/Deno/Bun, Go and Cloud Infrastructure. I specialize in building resilient backend architectures, distributed data pipelines, and declarative development environments (NixOS). With a background in enterprise networking and a "DevOps-first" mindset, I excel at solving complex synchronization and infrastructure challenges, moving beyond the UI to engineer robust, high-performance systems.
+Technical Skills
+Category	Technologies & Tools
+Backend & Databases	Go, Node.js/Deno/Bun, MongoDB/Mongoose, PostgreSQL
+Cloud & DevOps	Kubernetes, NixOS (Flakes), Podman/Docker, GCP, DigitalOcean, 				AWS (Lambda, Gateway), OVHcloud
+Scripting & Automation	Nushell, Python, Bash, GCP Cloud Tasks/Scheduler
+Networking & Systems	WireGuard, Linux SysAdmin, Cisco Meraki, Ekahau 	NGINX & Traefik (TLS termination, edge reverse proxy, caching)
+AI Infrastructure	LiteLLM, Ollama, Open-WebUI, Private Hybrid AI Infrastructure
+Application Dev	Flutter (Mobile), Stripe API, SvelteKit, Qwik.js, React, Vue.js (Nuxt) 	(Familiar with other SSR/API stacks including Django and Flask)
+Experience
+Sticky Ventures (formerly Cometa Group)	September 2024 – Present
+Full-Stack Developer (Flutter, Node.js/Deno, MongoDB, Go)
+Engineered a comprehensive licensing and seat-management system, protecting organizational revenue streams. Developed a Flutter-based front-end locking mechanism and a backend validation system utilizing MongoDB transactions and complex aggregation queries to track usage limits, expirations, and manual overrides.
+Architected a resilient local development environment using Podman-compose and sidecar containers to simulate restricted DigitalOcean Kubernetes deployments. This bypassed staging environment dependencies, enabling real-time hot-reloading and direct debugger attachment, significantly accelerating feature delivery.
+Developed an advanced RPE and Wellness reporting engine for organizations. Implemented MongoDB aggregation queries to calculate Total Athletic Load and pre-format raw data, while orchestrating the final processing of derived metrics (Acute/Chronic Load, ACWR) in the Node.js/Deno backend, automatically generating and emailing granular CSV/XLSX reports stored in DigitalOcean Spaces.
+Built robust data integrations and synchronization pipelines using Go and Deno.js. Integrated LeagueApps API and custom .ics calendar parsing, writing Go scripts to deduplicate events and implementing protected-field logic to prevent external syncs from overwriting user-modified data.
+Demonstrated high adaptability and velocity by rapidly upskilling in Dart/Flutter. Transitioned from web to mobile development, merging first production features within 3 months and subsequently independently driving ~32% of the engineering team’s total commit volume over the following year.
+Cometa Group	October 2021 - September 2024
+Full-Stack Developer (Vue.js, Node.js)
+Led a massive technical debt reduction initiative, upgrading core frameworks (Webpack 3 to 5, Node 8 to 16, and Firebase SDK 5 to 9) to ensure security compliance and modern build performance.
+Architected a modular component system by decoupling monolithic structures into self-contained modules, resulting in significantly lower regression rates and improved team development velocity.
+Re-factored web-app state management, optimizing load times and UI reactivity for the SoccerPulse platform.
+Designed a strategic migration path from Firebase Realtime DB to Firestore, including the proposal of a new normalized data structure to support complex querying and scalability.
+Implemented revenue-driving features, including a multi-tier subscription engine integrated with Stripe and a real-time notification system via MagicBell.
+Standardized technical onboarding by co-authoring the company’s Technical Audit processes and documentation for new client acquisition.
+Engineered a distributed biometric data ingestion pipeline integrating BeyondPulse wearable data. Architected a custom synchronization engine using GCP Cloud Scheduler to trigger syncs and Cloud Tasks to manage execution queues with custom exponential backoff logic.
+Developed "best-guess" reconciliation algorithms to map disparate timestamps between internal event logs and rudimentary third-party APIs, ensuring accurate player performance metrics despite a lack of provider-side webhooks.
+Proxify AB	July 2021 – February 2022
+Full-Stack Developer (Nuxt.js, Strapi CMS, Dato CMS)
+Directed code quality and peer reviews for a distributed team of 4 developers, ensuring strict adherence to performance and security standards for the Spixler platform.
+Managed a high-availability VPS infrastructure hosting a complex ecosystem of Nuxt.js sites, Strapi CMS, Dato CMS and WordPress instances.
+Orchestrated framework readiness audits for major version upgrades (Strapi v4, Nuxt 3), ensuring a seamless transition for production environments.
+Facilitated a critical root-cause analysis for recurring service degradations on Strapi-reliant sites. Collaborated with specialized DevOps engineers to trace application-layer hangs to unoptimized ORM queries that failed to match raw PostgreSQL performance.
+Logsie LLC	March 2020 – January 2021
+Full-Stack Developer / Technical Lead (Vue.js, Mapbox.js)
+Scaled the engineering organization by recruiting and assembling a core team of software engineers.
+Defined the product MVP and technology stack, aligning the roadmap with fundraising milestones and user experience feedback.
+Led cross-functional collaboration to prioritize feature roll-outs and maintain a lean, high-velocity development cycle.
+ThomDigital Group Ltd	August 2018 - March 2020
+IT Infrastructure Consultant
+Deployed and managed full-stack Cisco Meraki networking for enterprise clients, leveraging the Meraki Dashboard API for automated monitoring and troubleshooting.
+Architected physical-to-digital security integrations using Kisi and Brivo cloud-access systems across multiple New York City office sites.
+Managed complex vendor ecosystems, coordinating between ISPs, construction contractors, and low-voltage vendors to deliver "day-one" ready office technology infrastructure.
+Directed end-to-end technical implementation and field engineering, overseeing the installation and remote maintenance of enterprise networking and high-fidelity AV infrastructure.
+Cometa Group	March 2018 – September 2019
+Front-End Developer (Vue.js)
+Developed high-performance web applications for international clients, primarily focusing on the Encaptiv platform.
+Translated complex business requirements into intuitive user interfaces using modern JavaScript frameworks and responsive design principles.
+Side Projects
+Hybrid AI & Infrastructure Lab | Self-Hosted | DevOps
+Built a multi-node AI inference system using Docker Compose and Traefik as an edge reverse proxy, routing traffic between public VPS services (Open-WebUI, LiteLLM).
+Configured secure routing between public VPS services and a private Ollama node via WireGuard, enabling remote access to locally hosted LLMs.
+Enabled tool-augmented local inference by integrating Open-WebUI with external search APIs, allowing local models to perform web search and maintain persistent conversation state.
+Built a custom LLM-powered development workflow in Neovim (CopilotChat + LiteLLM), routing requests to both local and external models through a unified API layer.
+
+Declarative Development Sandbox | NixOS / Containerization
+Engineered a reproducible development environment using Nix Flakes, managing complex dependencies between NVIDIA open drivers, GNOME’s Mutter, and GPU-accelerated Android emulators.
+Designed a portable container orchestration strategy using Podman-compose with bridge network configurations, ensuring a seamless, high-performance local dev environment that remains fully compatible across both NixOS and macOS.
+Certificates
+Ekahau ECSE Design • Cisco Meraki ECMS1
