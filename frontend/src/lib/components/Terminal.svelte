@@ -6,9 +6,70 @@
     content: string;
   }
 
+  const commands = [
+    { name: "whoami", desc: "Display current user" },
+    { name: "pwd", desc: "Print working directory" },
+    { name: "cd", desc: "Change directory" },
+    { name: "ls", desc: "List files" },
+    { name: "cat", desc: "Display file contents" },
+    {
+      name: "contact",
+      desc: "Contact me via --email or --phone",
+      flags: ["--email", "--phone"],
+    },
+    { name: "clear", desc: "Clear terminal" },
+    { name: "help", desc: "Show this help message" },
+  ];
+
+  let selectedIndex = $state(-1);
+  let suggestions = $state<string[]>([]);
+
+  function updateSuggestions(input: string) {
+    if (!input) {
+      suggestions = [];
+      selectedIndex = -1;
+      return;
+    }
+    const partial = input.trim().toLowerCase();
+    const parts = partial.split(/\s+/);
+    if (parts.length === 1) {
+      suggestions = commands
+        .filter((c) => c.name.startsWith(parts[0]))
+        .map((c) => c.name);
+    } else if (parts.length === 2 && parts[0] === "contact") {
+      const cmd = commands.find((c) => c.name === "contact");
+      suggestions = (cmd?.flags || []).filter((f) => f.startsWith(parts[1]));
+    } else if (parts.length === 2 && parts[0] === "cat") {
+      const files = directories[currentDir] || [];
+      if (parts[1]) {
+        suggestions = files.filter((f) => f.toLowerCase().startsWith(parts[1]));
+      } else if (suggestions.length === 0) {
+        suggestions = files;
+        selectedIndex = suggestions.length > 0 ? 0 : -1;
+      }
+    } else if (parts.length === 2 && parts[0] === "cd") {
+      const dirs = directories[currentDir] || [];
+      if (parts[1]) {
+        suggestions = dirs.filter((d) => d.toLowerCase().startsWith(parts[1]));
+      } else if (suggestions.length === 0) {
+        suggestions = dirs;
+        selectedIndex = suggestions.length > 0 ? 0 : -1;
+      }
+    } else {
+      suggestions = [];
+    }
+    selectedIndex = suggestions.length > 0 ? 0 : -1;
+  }
+
   onMount(() => {
     inputRef?.focus();
   });
+
+  function onInputChange(e: Event) {
+    const target = e.target as HTMLInputElement;
+    currentInput = target.value;
+    updateSuggestions(currentInput);
+  }
 
   let lines = $state<TerminalLine[]>([
     { type: "output", content: "Welcome to kolchurin.dev terminal" },
@@ -237,7 +298,7 @@ Try: cat skills.json, cat experience.json, about.txt`,
 
       case "contact": {
         const flag = args[0];
-        if (flag === "--email" || !flag) {
+        if (flag === "--email") {
           window.location.href = "mailto:vladimir@kolchurin.dev";
           lines.push({
             type: "output",
@@ -269,7 +330,30 @@ Try: cat skills.json, cat experience.json, about.txt`,
   }
 
   function handleKeyDown(e: KeyboardEvent) {
-    if (e.key === "Enter") {
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (suggestions.length > 0) {
+        selectedIndex =
+          selectedIndex > 0 ? selectedIndex - 1 : suggestions.length - 1;
+      }
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (suggestions.length > 0) {
+        selectedIndex =
+          selectedIndex < suggestions.length - 1 ? selectedIndex + 1 : 0;
+      }
+    } else if (e.key === "Tab") {
+      e.preventDefault();
+      if (suggestions.length > 0 && selectedIndex >= 0) {
+        const parts = currentInput.trim().split(/\s+/);
+        parts[parts.length - 1] = suggestions[selectedIndex];
+        currentInput = parts.join(" ") + " ";
+        suggestions = [];
+        selectedIndex = -1;
+      }
+    } else if (e.key === "Enter") {
+      suggestions = [];
+      selectedIndex = -1;
       handleCommand(currentInput);
     }
   }
@@ -334,6 +418,7 @@ Try: cat skills.json, cat experience.json, about.txt`,
           bind:this={inputRef}
           bind:value={currentInput}
           onkeydown={handleKeyDown}
+          oninput={onInputChange}
           type="text"
           class="hidden-input"
           autocomplete="off"
@@ -342,6 +427,16 @@ Try: cat skills.json, cat experience.json, about.txt`,
         />
       </span>
     </div>
+    {#if suggestions.length > 0}
+      <div class="suggestions">
+        {#each suggestions as suggestion, i}
+          <span
+            class:suggestion-item={true}
+            class:selected={i === selectedIndex}>{suggestion}</span
+          >
+        {/each}
+      </div>
+    {/if}
   </div>
 </div>
 
@@ -494,6 +589,27 @@ Try: cat skills.json, cat experience.json, about.txt`,
     margin: 0;
     white-space: pre;
     background-color: unset;
+  }
+
+  .suggestions {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.5rem 0;
+    font-family: "Space Mono", monospace;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    flex-wrap: wrap;
+  }
+
+  .suggestion-item {
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    background-color: var(--bg-tertiary);
+  }
+
+  .suggestion-item.selected {
+    background-color: var(--accent);
+    color: var(--bg-primary);
   }
 
   ::-webkit-scrollbar {
