@@ -442,7 +442,7 @@ Try: cat skills.json, cat experience.json, about.txt`,
 
 <style>
   .terminal {
-    background-color: #0d0d12;
+    background-color: var(--bg-primary);
     border: 1px solid var(--border);
     border-radius: 12px;
     overflow: hidden;
@@ -457,7 +457,7 @@ Try: cat skills.json, cat experience.json, about.txt`,
     align-items: center;
     gap: 1rem;
     padding: 0.75rem 1rem;
-    background-color: #0a0a0f;
+    background-color: var(--bg-tertiary);
     border-bottom: 1px solid var(--border);
   }
 
