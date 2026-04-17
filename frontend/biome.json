@@ -16,12 +16,21 @@
     "enabled": true,
     "rules": {
       "recommended": true,
+      "complexity": {
+        "noForEach": "off"
+      },
       "correctness": {
-        "noUnusedImports": "warn",
-        "noUnusedVariables": "warn"
+        "noUnusedVariables": {
+          "level": "error",
+          "fix": "safe"
+        },
+        "noUnusedImports": {
+          "level": "error",
+          "fix": "safe"
+        }
       },
       "style": {
-        "noNonNullAssertion": "off"
+        "noNonNullAssertion": "error"
       }
     }
   },
@@ -32,10 +41,15 @@
     "lineWidth": 100
   },
   "javascript": {
+    "experimentalEmbeddedSnippetsEnabled": true,
     "formatter": {
       "quoteStyle": "double",
-      "semicolons": "always",
+      "semicolons": "asNeeded",
       "trailingCommas": "es5"
     }
+  },
+  "html": {
+    "formatter": { "enabled": true },
+    "experimentalFullSupportEnabled": true
   }
 }
