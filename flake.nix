@@ -21,8 +21,6 @@
             bun
             vitejs
 
-            ngrok
-
             protobuf
             protoc-gen-go
             protoc-gen-go-grpc
