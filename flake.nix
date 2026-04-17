@@ -20,6 +20,7 @@
 
             bun
             vitejs
+            nodejs_25 # needed for nvim plugins
 
             protobuf
             protoc-gen-go
