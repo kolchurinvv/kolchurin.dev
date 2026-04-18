@@ -26,9 +26,6 @@
             protoc-gen-go
             protoc-gen-go-grpc
 
-            # Deployment
-            kamal
-
           ];
 
           shellHook = ''
