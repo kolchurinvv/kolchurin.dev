@@ -22,33 +22,23 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Podman
-        uses: redhat-actions/setup-podman@v1
-        with:
-          version: "latest"
-
       - name: Login to Container Registry
-        uses: redhat-actions/login-ghcr@v1
-        with:
-          username: ${{ github.actor }}
-          password: ${{ env.GH_TOKEN }}
+        run: |
+          echo "${{ env.GH_TOKEN }}" | podman login ${{ env.REGISTRY }} \
+            -u ${{ github.actor }} --password-stdin
 
-      - name: Extract metadata for frontend
-        id: meta-frontend
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend
-          tags: |
-            type=ref,event=branch
-            type=sha,prefix=
-            type=raw,value=latest,enable={{is_default_branch}}
+      - name: Build frontend image
+        run: |
+          podman build -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ github.sha }} \
+            -f ./deployment/Dockerfile.frontend ./frontend
 
-      - name: Build and push frontend
-        uses: redhat-actions/buildah-action@v1
-        with:
-          context: ./frontend
-          dockerfile: ../deployment/Dockerfile.frontend
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta-frontend.outputs.tags }}
-          labels: ${{ steps.meta-frontend.outputs.labels }}
-          ostype: linux
+      - name: Tag for latest
+        run: |
+          podman tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ github.sha }} \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:latest
+
+      - name: Push image
+        if: github.event_name != 'pull_request'
+        run: |
+          podman push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ github.sha }}
+          podman push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:latest

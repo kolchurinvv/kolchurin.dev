@@ -311,3 +311,5 @@ fix: resolve memory leak in gRPC client
 docs: update README with new commands
 refactor: extract user validation to separate module
 ```
+## General context
+- Current year is 2026. Use this for any web search
