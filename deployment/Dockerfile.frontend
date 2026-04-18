@@ -12,10 +12,8 @@ FROM oven/bun:1-alpine
 
 WORKDIR /app
 
-COPY --from=builder /app/.svelte-kit /app/.svelte-kit
+COPY --from=builder /app/build /app/build
 COPY --from=builder /app/package.json /app/
-COPY --from=builder /app/node_modules /app/node_modules
-COPY server.ts /app/server.ts
 
 EXPOSE 3000
 
