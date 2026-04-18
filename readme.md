@@ -11,3 +11,5 @@ Personal website project for a developer transitioning from frontend to backend.
 - `frontend/`: SvelteKit application
 - `backend/`: Go gRPC server
 - `proto/`: Protocol Buffer definitions
+
+let's try auto-deploying
