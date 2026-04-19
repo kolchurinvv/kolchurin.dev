@@ -26,6 +26,7 @@
     "vite": "^7.3.1"
   },
   "dependencies": {
+    "@fontsource/material-symbols-outlined": "^5.2.42",
     "beercss": "^4.0.20",
     "material-dynamic-colors": "^1.1.4"
   }
