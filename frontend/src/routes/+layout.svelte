@@ -74,6 +74,9 @@ function updateBtnIcon() {
   <a href="/grid" class="nav-link" class:active={$page.url.pathname === "/grid"}>
     <i>grid_view</i>
   </a>
+  <a href="/grid-v2" class="nav-link" class:active={$page.url.pathname === "/grid-v2"}>
+    <i>apps</i>
+  </a>
 </div>
 
 <button
