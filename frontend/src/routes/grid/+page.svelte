@@ -1,230 +1,241 @@
 <script lang="ts">
-import { onMount } from "svelte"
-import Terminal from "$lib/components/Terminal.svelte"
-import { contact, skills, experience } from "$lib/profile"
+  import { onMount } from "svelte";
+  import Terminal from "$lib/components/Terminal.svelte";
+  import { contact, skills, experience } from "$lib/profile";
 
-let showPdf = $state(false)
-let certSection: HTMLElement
+  let showPdf = $state(false);
+  let certSection: HTMLElement;
 
-let viewportWidth = $state(0)
-let viewportHeight = $state(0)
-let containerWidth = $state(0)
-let containerHeight = $state(0)
-let gridCols = $state(3)
-let gridRows = $state(3)
+  let viewportWidth = $state(0);
+  let viewportHeight = $state(0);
+  let containerWidth = $state(0);
+  let containerHeight = $state(0);
+  let gridCols = $state(3);
+  let gridRows = $state(3);
 
-interface Section {
-  id: string
-  name: string
-  priority: number
-  content: "header" | "terminal" | "about" | "skills" | "experience" | "projects" | "certs" | "footer"
-}
-
-let sections: Section[] = $state([
-  { id: "header", name: "Header", priority: 4, content: "header" },
-  { id: "terminal", name: "Terminal", priority: 3, content: "terminal" },
-  { id: "about", name: "About", priority: 5, content: "about" },
-  { id: "skills", name: "Skills", priority: 6, content: "skills" },
-  { id: "experience", name: "Experience", priority: 10, content: "experience" },
-  { id: "projects", name: "Projects", priority: 2, content: "projects" },
-  { id: "certs", name: "Certifications", priority: 1, content: "certs" },
-  { id: "footer", name: "Footer", priority: 1, content: "footer" },
-])
-
-let layout: { col: number; row: number; colSpan: number; rowSpan: number }[] = $state([])
-
-onMount(() => {
-  viewportWidth = window.innerWidth
-  viewportHeight = window.innerHeight
-
-  function calculateGrid() {
-    viewportWidth = window.innerWidth
-    viewportHeight = window.innerHeight
-
-    const aspectRatio = viewportWidth / viewportHeight
-
-    if (aspectRatio > 2.0) {
-      gridCols = 4
-      gridRows = 3
-    } else if (aspectRatio > 1.3) {
-      gridCols = 3
-      gridRows = 3
-    } else {
-      gridCols = 2
-      gridRows = 4
-    }
-
-    containerWidth = viewportWidth - 48
-    containerHeight = viewportHeight - 48
-    generateLayout()
+  interface Section {
+    id: string;
+    name: string;
+    priority: number;
+    content:
+      | "header"
+      | "terminal"
+      | "about"
+      | "skills"
+      | "experience"
+      | "projects"
+      | "certs"
+      | "footer";
   }
 
-  function generateLayout() {
-    const sortedSections = [...sections].sort((a, b) => b.priority - a.priority)
+  // Sorted DESC by priority - index matches layout position
+  let sections: Section[] = $state([
+    {
+      id: "experience",
+      name: "Experience",
+      priority: 10,
+      content: "experience",
+    },
+    { id: "skills", name: "Skills", priority: 20, content: "skills" },
+    { id: "about", name: "About", priority: 5, content: "about" },
+    { id: "terminal", name: "Terminal", priority: 3, content: "terminal" },
+    { id: "projects", name: "Projects", priority: 2, content: "projects" },
+    { id: "header", name: "Header", priority: 1, content: "header" },
+    { id: "certs", name: "Certifications", priority: 1, content: "certs" },
+    { id: "footer", name: "Footer", priority: 1, content: "footer" },
+  ]);
 
-    const experienceIdx = sortedSections.findIndex(s => s.content === "experience")
-    const expSection = sortedSections.splice(experienceIdx, 1)[0]
+  function computeGrid() {
+    const vw = viewportWidth || 1920;
+    const vh = viewportHeight || 1080;
+    const aspectRatio = vw / vh;
 
-    const centerCol = Math.floor(gridCols / 2)
-    const centerRow = Math.floor(gridRows / 2)
-
-    let expSpanW = gridCols >= 4 ? 2 : 1
-    let expSpanH = gridRows >= 3 ? 2 : 1
-    if (gridCols >= 4 && gridRows >= 3) {
-      expSpanW = 2
-      expSpanH = 2
+    let cols = 3;
+    let rows = 3;
+    if (aspectRatio > 2.0) {
+      cols = 4;
+      rows = 3;
+    } else if (aspectRatio > 1.3) {
+      cols = 3;
+      rows = 3;
+    } else {
+      cols = 2;
+      rows = 4;
     }
 
-    const expCell = {
-      col: centerCol - Math.floor(expSpanW / 2),
-      row: centerRow - Math.floor(expSpanH / 2),
-      colSpan: expSpanW,
-      rowSpan: expSpanH,
-    }
+    const w = vw - 48;
+    const h = vh - 48;
 
-    const usedCells = new Set<string>()
-    for (let dy = 0; dy < expSpanH; dy++) {
-      for (let dx = 0; dx < expSpanW; dx++) {
-        usedCells.add(`${expCell.col + dx},${expCell.row + dy}`)
+    gridCols = cols;
+    gridRows = rows;
+    containerWidth = w;
+    containerHeight = h;
+
+    return computeLayout(cols, rows, w, h);
+  }
+
+  onMount(() => {
+    viewportWidth = window.innerWidth;
+    viewportHeight = window.innerHeight;
+    window.addEventListener("resize", () => {
+      viewportWidth = window.innerWidth;
+      viewportHeight = window.innerHeight;
+    });
+  });
+
+  function computeLayout(
+    gridCols: number,
+    gridRows: number,
+    containerWidth: number,
+    containerHeight: number,
+  ) {
+    const centerCol = gridCols >= 3 ? 1 : 0;
+    const centerRow = gridRows >= 3 ? 1 : 0;
+
+    const newLayout: {
+      col: number;
+      row: number;
+      colSpan: number;
+      rowSpan: number;
+    }[] = [];
+
+    const usedCells = new Set<string>();
+
+    // Iterate in priority order (sections sorted DESC)
+    for (const section of sections) {
+      let placed = false;
+
+      // High priority = prefer center
+      const preferCenter = section.priority >= 5;
+      // Higher priority = larger span
+      const wantsLargeSpan = section.priority >= 3;
+
+      // Build position preference list
+      const positions: { col: number; row: number }[] = [];
+
+      if (preferCenter) {
+        positions.push({ col: centerCol, row: centerRow });
       }
-    }
 
-    const newLayout: { col: number; row: number; colSpan: number; rowSpan: number }[] = []
-
-    newLayout.push(expSection.id === "experience" ? expCell : { col: 0, row: 0, colSpan: 1, rowSpan: 1 })
-
-    for (const section of sortedSections) {
-      let placed = false
-      let bestCell = { col: 0, row: 0, colSpan: 1, rowSpan: 1 }
-      let bestScore = -1
-
-      for (let row = 0; row < gridRows && !placed; row++) {
-        for (let col = 0; col < gridCols && !placed; col++) {
-          if (usedCells.has(`${col},${row}`)) continue
-
-          const cellKey = `${col},${row}`
-          if (usedCells.has(cellKey)) continue
-
-          let spanW = 1
-          let spanH = 1
-
-          if (section.priority >= 5) {
-            if (col < gridCols - 1 && !usedCells.has(`${col + 1},${row}`)) {
-              spanW = 2
-            }
-            if (row < gridRows - 1 && spanW === 1 && !usedCells.has(`${col},${row + 1}`)) {
-              spanH = 2
-            }
-          } else if (section.priority >= 3) {
-            if (col < gridCols - 1) spanW = 2
-          }
-
-          if (col + spanW > gridCols) spanW = 1
-          if (row + spanH > gridRows) spanH = 1
-
-          let canFit = true
-          for (let dy = 0; dy < spanH && canFit; dy++) {
-            for (let dx = 0; dx < spanW && canFit; dx++) {
-              if (usedCells.has(`${col + dx},${row + dy}`)) canFit = false
-            }
-          }
-
-          if (canFit) {
-            const distFromCenterX = Math.abs(col + spanW / 2 - centerCol) / centerCol
-            const distFromCenterY = Math.abs(row + spanH / 2 - centerRow) / centerRow
-            const centerDist = Math.sqrt(distFromCenterX * distFromCenterX + distFromCenterY * distFromCenterY)
-
-            const isEdge = col === 0 || col === gridCols - spanW || row === 0 || row === gridRows - spanH
-            const isCorner = (col === 0 || col === gridCols - spanW) && (row === 0 || row === gridRows - spanH)
-
-            let score = section.priority
-            if (section.priority <= 2) {
-              if (isCorner) score += 10
-              else if (isEdge) score += 5
-            } else {
-              score -= centerDist * 5
-            }
-
-            if (score > bestScore) {
-              bestScore = score
-              bestCell = { col, row, colSpan: spanW, rowSpan: spanH }
-            }
+      // Low priority prefers corners first
+      if (section.priority <= 2) {
+        for (let r = 0; r < gridRows; r++) {
+          for (let c = 0; c < gridCols; c++) {
+            // Corner: row 0 or last, col 0 or last
+            const isCorner =
+              (r === 0 || r === gridRows - 1) &&
+              (c === 0 || c === gridCols - 1);
+            if (isCorner) positions.unshift({ col: c, row: r });
           }
         }
       }
 
-      if (bestScore > -1) {
-        newLayout.push(bestCell)
-        for (let dy = 0; dy < bestCell.rowSpan; dy++) {
-          for (let dx = 0; dx < bestCell.colSpan; dx++) {
-            usedCells.add(`${bestCell.col + dx},${bestCell.row + dy}`)
-          }
-        }
-      }
-    }
-
-    while (newLayout.length < sections.length) {
+      // Fill remaining positions by row
       for (let row = 0; row < gridRows; row++) {
         for (let col = 0; col < gridCols; col++) {
-          if (!usedCells.has(`${col},${row}`)) {
-            newLayout.push({ col, row, colSpan: 1, rowSpan: 1 })
-            usedCells.add(`${col},${row}`)
-            break
+          if (!positions.some((p) => p.col === col && p.row === row)) {
+            positions.push({ col, row });
           }
         }
-        if (newLayout.length >= sections.length) break
       }
-      break
+
+      // Try each position
+      for (const pos of positions) {
+        let spanW = wantsLargeSpan ? (section.priority >= 5 ? 2 : 1) : 1;
+        let spanH = wantsLargeSpan && section.priority >= 5 ? 2 : 1;
+
+        if (pos.col + spanW > gridCols) spanW = 1;
+        if (pos.row + spanH > gridRows) spanH = 1;
+
+        let canFit = true;
+        for (let dy = 0; dy < spanH && canFit; dy++) {
+          for (let dx = 0; dx < spanW && canFit; dx++) {
+            if (usedCells.has(`${pos.col + dx},${pos.row + dy}`))
+              canFit = false;
+          }
+        }
+
+        if (canFit) {
+          newLayout.push({
+            col: pos.col,
+            row: pos.row,
+            colSpan: spanW,
+            rowSpan: spanH,
+          });
+          for (let dy = 0; dy < spanH; dy++) {
+            for (let dx = 0; dx < spanW; dx++) {
+              usedCells.add(`${pos.col + dx},${pos.row + dy}`);
+            }
+          }
+          placed = true;
+          break;
+        }
+      }
+
+      // Fallback: find first empty cell
+      if (!placed) {
+        for (let row = 0; row < gridRows && !placed; row++) {
+          for (let col = 0; col < gridCols && !placed; col++) {
+            if (!usedCells.has(`${col},${row}`)) {
+              newLayout.push({ col, row, colSpan: 1, rowSpan: 1 });
+              usedCells.add(`${col},${row}`);
+              placed = true;
+            }
+          }
+        }
+      }
     }
 
-    layout = newLayout
+    return newLayout;
   }
 
-  calculateGrid()
-  window.addEventListener("resize", calculateGrid)
-  return () => window.removeEventListener("resize", calculateGrid)
-})
+  function openPdf() {
+    showPdf = true;
+  }
 
-function openPdf() {
-  showPdf = true
-}
+  function closePdf() {
+    showPdf = false;
+  }
 
-function closePdf() {
-  showPdf = false
-}
+  function getCellStyle(index: number): string {
+    if (!layout[index]) return "display: none;";
+    const cell = layout[index];
+    const cellW = (containerWidth / gridCols) * cell.colSpan;
+    const cellH = (containerHeight / gridRows) * cell.rowSpan;
+    const cellX = (containerWidth / gridCols) * cell.col;
+    const cellY = (containerHeight / gridRows) * cell.row;
 
-function getCellStyle(index: number): string {
-  if (!layout[index]) return "display: none;"
-  const cell = layout[index]
-  const cellW = (containerWidth / gridCols) * cell.colSpan
-  const cellH = (containerHeight / gridRows) * cell.rowSpan
-  const cellX = (containerWidth / gridCols) * cell.col
-  const cellY = (containerHeight / gridRows) * cell.row
+    return `left: ${cellX + 24}px; top: ${cellY + 24}px; width: ${cellW - 8}px; height: ${cellH - 8}px;`;
+  }
 
-  return `left: ${cellX + 24}px; top: ${cellY + 24}px; width: ${cellW - 8}px; height: ${cellH - 8}px;`
-}
+  let layout = $state(computeGrid());
+
+  $effect(() => {
+    if (typeof window !== "undefined") {
+      layout = computeGrid();
+    }
+  });
 </script>
 
-<div class="grid-layout" style="--cols: {gridCols}; --rows: {gridRows}; --vw: {viewportWidth}px; --vh: {viewportHeight}px;">
-  <nav class="grid-nav">
-    <a href="/" class="nav-link">
-      <i>view_agenda</i>
-      <span>Linear</span>
-    </a>
-    <a href="/grid" class="nav-link active">
-      <i>grid_view</i>
-      <span>Grid</span>
-    </a>
-  </nav>
-
+<div
+  class="grid-layout"
+  style="--cols: {gridCols}; --rows: {gridRows}; --vw: {viewportWidth}px; --vh: {viewportHeight}px;"
+>
   <div class="grid-container">
     {#each sections as section, i}
       {@const cell = layout[i]}
       {#if cell}
-        <div class="grid-cell" style={getCellStyle(i)} data-section={section.id} data-priority={section.priority}>
+        <div
+          class="grid-cell"
+          style={getCellStyle(i)}
+          data-section={section.id}
+          data-priority={section.priority}
+        >
           {#if section.content === "header"}
             <div class="cell-content header-cell">
-              <figure class="avatar"><img src="/headshot.webp" alt="Vladimir Kolchurin"></figure>
+              <figure class="avatar">
+                <img src="/headshot.webp" alt="Vladimir Kolchurin" />
+              </figure>
               <div class="header-text">
                 <div class="status-line">
                   <span class="prompt">❯</span>
@@ -240,11 +251,19 @@ function getCellStyle(index: number): string {
                     <span class="value">{contact.email}</span>
                   </a>
                   <div class="contact-links">
-                    <a href="https://{contact.github}" target="_blank" rel="noopener" class="secondary-link">
+                    <a
+                      href="https://{contact.github}"
+                      target="_blank"
+                      rel="noopener"
+                      class="secondary-link"
+                    >
                       <i>code</i>
                       {contact.github}
                     </a>
-                    <a href="tel:{contact.phone.replace(/\s/g, '')}" class="secondary-link">
+                    <a
+                      href="tel:{contact.phone.replace(/\s/g, '')}"
+                      class="secondary-link"
+                    >
                       <i>phone</i>
                       {contact.phone}
                     </a>
@@ -253,9 +272,7 @@ function getCellStyle(index: number): string {
               </div>
             </div>
           {:else if section.content === "terminal"}
-            <div class="cell-content terminal-cell">
-              <Terminal />
-            </div>
+            <div class="cell-content terminal-cell"><Terminal /></div>
           {:else if section.content === "about"}
             <div class="cell-content about-cell">
               <div class="section-header">
@@ -263,11 +280,14 @@ function getCellStyle(index: number): string {
                 <h2 class="section-title">About</h2>
               </div>
               <p class="about-text">
-                I specialize in building <span class="highlight">resilient backend architectures</span>,
-                distributed data pipelines, and declarative development environments. With a background in
-                enterprise networking and a <span class="highlight">DevOps-first</span> mindset, I excel at
-                solving complex synchronization and infrastructure challenges—moving beyond the UI to
-                engineer robust, high-performance systems.
+                I specialize in building
+                <span class="highlight">resilient backend architectures</span>,
+                distributed data pipelines, and declarative development
+                environments. With a background in enterprise networking and a
+                <span class="highlight">DevOps-first</span>
+                mindset, I excel at solving complex synchronization and infrastructure
+                challenges—moving beyond the UI to engineer robust, high-performance
+                systems.
               </p>
               <div class="stats">
                 <div class="stat">
@@ -355,31 +375,55 @@ function getCellStyle(index: number): string {
                 <div class="chip">AI</div>
                 <h3>Hybrid AI & Infrastructure Lab</h3>
                 <p class="project-stack">
-                  <i class="tiny">cloud</i>Docker Compose<span class="sep">•</span><i class="tiny">language</i>Traefik<span class="sep">•</span><i class="tiny">vpn</i>WireGuard
+                  <i class="tiny">cloud</i>Docker Compose<span class="sep"
+                    >•</span
+                  ><i class="tiny">language</i>Traefik<span class="sep">•</span
+                  ><i class="tiny">vpn</i>WireGuard
                 </p>
                 <ul class="project-highlights">
-                  <li>Multi-node AI inference system with Docker Compose and Traefik reverse proxy</li>
-                  <li>Secure routing between public VPS services and private Ollama via WireGuard</li>
-                  <li>Tool-augmented local inference with Open-WebUI + external search APIs</li>
-                  <li>Custom LLM-powered Neovim workflow (CopilotChat + LiteLLM)</li>
+                  <li>
+                    Multi-node AI inference system with Docker Compose and
+                    Traefik reverse proxy
+                  </li>
+                  <li>
+                    Secure routing between public VPS services and private
+                    Ollama via WireGuard
+                  </li>
+                  <li>
+                    Tool-augmented local inference with Open-WebUI + external
+                    search APIs
+                  </li>
+                  <li>
+                    Custom LLM-powered Neovim workflow (CopilotChat + LiteLLM)
+                  </li>
                 </ul>
               </article>
               <article class="project-card">
                 <div class="chip dev">Dev</div>
                 <h3>Declarative Development Sandbox</h3>
                 <p class="project-stack">
-                  <i class="tiny">code</i>NixOS<span class="sep">•</span><i class="tiny">inventory_2</i>Podman
+                  <i class="tiny">code</i>NixOS<span class="sep">•</span><i
+                    class="tiny">inventory_2</i
+                  >Podman
                 </p>
                 <ul class="project-highlights">
-                  <li>Reproducible dev environment using Nix Flakes with NVIDIA drivers & GPU-accelerated Android emulators</li>
-                  <li>Portable container orchestration with Podman-compose across NixOS and macOS</li>
+                  <li>
+                    Reproducible dev environment using Nix Flakes with NVIDIA
+                    drivers & GPU-accelerated Android emulators
+                  </li>
+                  <li>
+                    Portable container orchestration with Podman-compose across
+                    NixOS and macOS
+                  </li>
                 </ul>
               </article>
             </div>
           {:else if section.content === "certs"}
             <div class="cell-content certs-cell">
               <div class="section-header">
-                <span class="section-icon"><i class="extra">workspace_premium</i></span>
+                <span class="section-icon"
+                  ><i class="extra">workspace_premium</i></span
+                >
                 <h2 class="section-title">Certifications</h2>
               </div>
               <div class="certs-list">
@@ -408,643 +452,615 @@ function getCellStyle(index: number): string {
 </div>
 
 {#if showPdf}
-  <div class="pdf-modal" onclick={closePdf} onkeydown={(e) => e.key === "Escape" && closePdf()} role="dialog" aria-modal="true" tabindex="-1">
-    <div class="pdf-content" role="document" onclick={(e) => e.stopPropagation()}>
-      <iframe src="/2019-ECSE-Certificate-ekahau-Vladimir_Kolchurin.pdf" title="Ekahau ECSE Certificate"></iframe>
+  <div
+    class="pdf-modal"
+    onclick={closePdf}
+    onkeydown={(e) => e.key === "Escape" && closePdf()}
+    role="dialog"
+    aria-modal="true"
+    tabindex="-1"
+  >
+    <div
+      class="pdf-content"
+      role="document"
+      onclick={(e) => e.stopPropagation()}
+    >
+      <iframe
+        src="/2019-ECSE-Certificate-ekahau-Vladimir_Kolchurin.pdf"
+        title="Ekahau ECSE Certificate"
+      ></iframe>
     </div>
   </div>
 {/if}
 
 <style>
-.grid-layout {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: var(--bg-primary);
-}
-
-.grid-nav {
-  position: fixed;
-  top: 1rem;
-  left: 1rem;
-  z-index: 1000;
-  display: flex;
-  gap: 0.5rem;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 0.25rem;
-}
-
-.nav-link {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  color: var(--text-secondary);
-  font-size: 0.85rem;
-  border-radius: 8px;
-  transition: all 0.2s;
-  text-decoration: none;
-}
-
-.nav-link:hover {
-  color: var(--text-primary);
-}
-
-.nav-link.active {
-  background: var(--accent);
-  color: var(--bg-primary);
-}
-
-.nav-link i {
-  font-size: 1.1rem;
-}
-
-.grid-container {
-  position: relative;
-  width: 100vw;
-  height: 100vh;
-  padding: 1.5rem;
-}
-
-.grid-cell {
-  position: absolute;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 2rem;
-  transition: border-color 0.2s, transform 0.2s;
-  overflow: auto;
-}
-
-.grid-cell:hover {
-  border-color: var(--accent);
-  z-index: 10;
-}
-
-.cell-content {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.section-header {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-  flex-shrink: 0;
-}
-
-.section-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  background: linear-gradient(135deg, var(--accent), var(--accent-dim));
-  border-radius: 12px;
-  color: var(--bg-primary);
-}
-
-.section-title {
-  font-size: 1.75rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0;
-}
-
-.avatar {
-  width: 120px;
-  height: 120px;
-  border-radius: 0;
-  border: 3px solid var(--border);
-  overflow: hidden;
-  flex-shrink: 0;
-}
-
-.avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.header-cell {
-  flex-direction: row;
-  gap: 2rem;
-  align-items: flex-start;
-}
-
-.header-text {
-  display: flex;
-  flex-direction: column;
-}
-
-.status-line {
-  font-family: "Space Mono", monospace;
-  font-size: 0.85rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
-}
-
-.prompt {
-  color: var(--accent);
-}
-
-.status {
-  color: #22c55e;
-}
-
-.name {
-  font-size: 2rem;
-  font-weight: 700;
-  margin: 0 0 0.25rem 0;
-  line-height: 1.2;
-}
-
-.tagline {
-  font-size: 1.25rem;
-  color: var(--accent);
-  font-weight: 500;
-  margin: 0 0 1rem 0;
-}
-
-.command-line {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-family: "Space Mono", monospace;
-  font-size: 0.85rem;
-  padding: 0.5rem 0.75rem;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border);
-  color: var(--text-primary);
-  text-decoration: none;
-  width: fit-content;
-  margin-bottom: 0.75rem;
-}
-
-.command-line:hover {
-  border-color: var(--accent);
-}
-
-.command-line .prompt {
-  font-weight: 700;
-}
-
-.cmd {
-  color: var(--text-primary);
-}
-
-.arg {
-  color: var(--text-muted);
-}
-
-.value {
-  color: var(--accent);
-}
-
-.contact-secondary {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.contact-links {
-  display: flex;
-  gap: 1.5rem;
-  font-size: 0.85rem;
-}
-
-.secondary-link {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: var(--text-secondary);
-  font-family: "Space Mono", monospace;
-}
-
-.secondary-link:hover {
-  color: var(--accent);
-}
-
-.terminal-cell {
-  padding: 0;
-}
-
-.terminal-cell :global(.terminal) {
-  height: 100%;
-}
-
-.terminal-cell :global(.terminal-window) {
-  height: 100%;
-  border-radius: 12px;
-}
-
-.about-cell {
-  gap: 0.5rem;
-}
-
-.about-text {
-  font-size: 1.1rem;
-  color: var(--text-secondary);
-  line-height: 1.8;
-  margin: 0 0 1.5rem 0;
-  flex: 1;
-}
-
-.highlight {
-  color: var(--accent);
-  font-weight: 500;
-}
-
-.stats {
-  display: flex;
-  gap: 2rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid var(--border);
-  flex-shrink: 0;
-}
-
-.stat {
-  display: flex;
-  flex-direction: column;
-}
-
-.stat-value {
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--accent);
-  line-height: 1;
-}
-
-.stat-label {
-  font-size: 0.85rem;
-  color: var(--text-muted);
-}
-
-.skills-cell {
-  overflow: auto;
-}
-
-.skills-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
-  flex: 1;
-  overflow: auto;
-}
-
-.skill-category {
-  padding: 1.25rem;
-  background: var(--bg-tertiary);
-  border-radius: 12px;
-  transition: transform 0.2s, border-color 0.2s;
-}
-
-.skill-category:hover {
-  transform: translateY(-2px);
-  border-color: var(--accent);
-}
-
-.skill-icon {
-  width: 36px;
-  height: 36px;
-  background: rgba(34, 211, 238, 0.1);
-  border-radius: 10px;
-  color: var(--accent);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 0.75rem;
-}
-
-.skill-category h4 {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0 0 0.75rem 0;
-}
-
-.skill-category ul {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.skill-category li {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-  padding: 0.25rem 0;
-}
-
-.skill-dot {
-  width: 6px;
-  height: 6px;
-  background: var(--accent);
-  border-radius: 50%;
-}
-
-.experience-cell {
-  overflow: auto;
-}
-
-.timeline {
-  flex: 1;
-  overflow: auto;
-}
-
-.timeline-item {
-  display: flex;
-  gap: 1.25rem;
-  margin-bottom: 1.5rem;
-}
-
-.timeline-item:last-child {
-  margin-bottom: 0;
-}
-
-.timeline-marker {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  flex-shrink: 0;
-}
-
-.marker-dot {
-  width: 16px;
-  height: 16px;
-  background: var(--accent);
-  border-radius: 50%;
-  box-shadow: 0 0 0 4px var(--bg-primary), 0 0 0 5px var(--accent);
-}
-
-.marker-line {
-  width: 2px;
-  flex: 1;
-  background: linear-gradient(180deg, var(--accent), var(--border));
-  margin-top: 0.5rem;
-}
-
-.timeline-content {
-  flex: 1;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 1.25rem;
-}
-
-.timeline-content:hover {
-  border-color: var(--accent-dim);
-}
-
-.timeline-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
-}
-
-.timeline-company {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.timeline-period {
-  font-size: 0.85rem;
-  color: var(--text-muted);
-}
-
-.timeline-title {
-  font-size: 0.95rem;
-  color: var(--accent);
-  margin: 0 0 0.75rem 0;
-}
-
-.job-highlights {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-}
-
-.job-highlights li {
-  padding: 0.35rem 0;
-  padding-left: 1rem;
-  position: relative;
-}
-
-.job-highlights li::before {
-  content: "▹";
-  position: absolute;
-  left: 0;
-  color: var(--accent);
-}
-
-.projects-cell {
-  overflow: auto;
-}
-
-.project-card {
-  position: relative;
-  padding: 1.5rem;
-  background: var(--bg-tertiary);
-  border-radius: 12px;
-  margin-bottom: 1rem;
-}
-
-.project-card:last-child {
-  margin-bottom: 0;
-}
-
-.project-card .chip {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  padding: 0.25rem 0.75rem;
-  font-size: 0.7rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  background: var(--accent);
-  color: var(--bg-primary);
-  border-radius: 6px;
-}
-
-.project-card .chip.dev {
-  background: #8b5cf6;
-}
-
-.project-card h3 {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0 0 0.5rem 0;
-  padding-right: 4rem;
-}
-
-.project-stack {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  margin: 0 0 1rem 0;
-  font-family: "Space Mono", monospace;
-}
-
-.sep {
-  color: var(--border);
-}
-
-.project-highlights {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-}
-
-.project-highlights li {
-  padding: 0.35rem 0;
-  padding-left: 1rem;
-  position: relative;
-  border-bottom: 1px solid var(--border);
-}
-
-.project-highlights li:last-child {
-  border-bottom: none;
-}
-
-.project-highlights li::before {
-  content: "→";
-  position: absolute;
-  left: 0;
-  color: var(--accent);
-}
-
-.certs-cell .certs-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.cert-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1.25rem;
-  font-size: 0.95rem;
-  color: var(--text-primary);
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  cursor: pointer;
-  width: fit-content;
-}
-
-.cert-badge:hover {
-  border-color: var(--accent);
-}
-
-.footer-cell {
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-}
-
-.footer-logo {
-  font-size: 1.25rem;
-  font-weight: 700;
-  font-family: "Space Mono", monospace;
-}
-
-.logo-bracket {
-  color: var(--accent);
-}
-
-.logo-text {
-  color: var(--text-primary);
-}
-
-.footer-cell p {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  margin: 0.5rem 0 0 0;
-}
-
-.pdf-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
-  z-index: 2000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-}
-
-.pdf-content {
-  position: relative;
-  width: 100%;
-  max-width: 900px;
-  height: 90vh;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-.pdf-content iframe {
-  width: 100%;
-  height: 100%;
-  border: none;
-}
-
-@media (max-width: 900px) {
-  .grid-nav {
-    top: auto;
-    bottom: 1rem;
-    left: 50%;
-    transform: translateX(-50%);
-  }
-
-  .nav-link span {
-    display: none;
+  .grid-layout {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--bg-primary);
+    padding-top: 4.2rem;
   }
 
   .grid-container {
-    padding: 0.5rem;
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    padding: 1.5rem;
   }
 
   .grid-cell {
-    position: relative;
-    width: 100% !important;
-    height: auto !important;
-    left: auto !important;
-    top: auto !important;
-    margin-bottom: 0.5rem;
-    max-height: none;
+    position: absolute;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 2rem;
+    transition:
+      border-color 0.2s,
+      transform 0.2s;
+    overflow: auto;
   }
 
-  .grid-layout {
-    position: relative;
-    overflow-y: auto;
+  .grid-cell:hover {
+    border-color: var(--accent);
+    z-index: 10;
   }
-}
+
+  .cell-content {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    flex-shrink: 0;
+  }
+
+  .section-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-dim));
+    border-radius: 12px;
+    color: var(--bg-primary);
+  }
+
+  .section-title {
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+  }
+
+  .avatar {
+    width: 120px;
+    height: 120px;
+    border-radius: 0;
+    border: 3px solid var(--border);
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .header-cell {
+    flex-direction: row;
+    gap: 2rem;
+    align-items: flex-start;
+  }
+
+  .header-text {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .status-line {
+    font-family: "Space Mono", monospace;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .prompt {
+    color: var(--accent);
+  }
+
+  .status {
+    color: #22c55e;
+  }
+
+  .name {
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 0 0 0.25rem 0;
+    line-height: 1.2;
+  }
+
+  .tagline {
+    font-size: 1.25rem;
+    color: var(--accent);
+    font-weight: 500;
+    margin: 0 0 1rem 0;
+  }
+
+  .command-line {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: "Space Mono", monospace;
+    font-size: 0.85rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    text-decoration: none;
+    width: fit-content;
+    margin-bottom: 0.75rem;
+  }
+
+  .command-line:hover {
+    border-color: var(--accent);
+  }
+
+  .command-line .prompt {
+    font-weight: 700;
+  }
+
+  .cmd {
+    color: var(--text-primary);
+  }
+
+  .arg {
+    color: var(--text-muted);
+  }
+
+  .value {
+    color: var(--accent);
+  }
+
+  .contact-secondary {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .contact-links {
+    display: flex;
+    gap: 1.5rem;
+    font-size: 0.85rem;
+  }
+
+  .secondary-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-secondary);
+    font-family: "Space Mono", monospace;
+  }
+
+  .secondary-link:hover {
+    color: var(--accent);
+  }
+
+  .terminal-cell {
+    padding: 0;
+  }
+
+  .terminal-cell :global(.terminal) {
+    height: 100%;
+  }
+
+  .terminal-cell :global(.terminal-window) {
+    height: 100%;
+    border-radius: 12px;
+  }
+
+  .about-cell {
+    gap: 0.5rem;
+  }
+
+  .about-text {
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+    line-height: 1.8;
+    margin: 0 0 1.5rem 0;
+    flex: 1;
+  }
+
+  .highlight {
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  .stats {
+    display: flex;
+    gap: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .stat {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+
+  .skills-cell {
+    overflow: auto;
+  }
+
+  .skills-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    flex: 1;
+    overflow: auto;
+  }
+
+  .skill-category {
+    padding: 1.25rem;
+    background: var(--bg-tertiary);
+    border-radius: 12px;
+    transition:
+      transform 0.2s,
+      border-color 0.2s;
+  }
+
+  .skill-category:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent);
+  }
+
+  .skill-icon {
+    width: 36px;
+    height: 36px;
+    background: rgba(34, 211, 238, 0.1);
+    border-radius: 10px;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0.75rem;
+  }
+
+  .skill-category h4 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 0.75rem 0;
+  }
+
+  .skill-category ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .skill-category li {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    padding: 0.25rem 0;
+  }
+
+  .skill-dot {
+    width: 6px;
+    height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+  }
+
+  .experience-cell {
+    overflow: auto;
+  }
+
+  .timeline {
+    flex: 1;
+    overflow: auto;
+  }
+
+  .timeline-item {
+    display: flex;
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .timeline-item:last-child {
+    margin-bottom: 0;
+  }
+
+  .timeline-marker {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .marker-dot {
+    width: 16px;
+    height: 16px;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow:
+      0 0 0 4px var(--bg-primary),
+      0 0 0 5px var(--accent);
+  }
+
+  .marker-line {
+    width: 2px;
+    flex: 1;
+    background: linear-gradient(180deg, var(--accent), var(--border));
+    margin-top: 0.5rem;
+  }
+
+  .timeline-content {
+    flex: 1;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+  }
+
+  .timeline-content:hover {
+    border-color: var(--accent-dim);
+  }
+
+  .timeline-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .timeline-company {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .timeline-period {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+
+  .timeline-title {
+    font-size: 0.95rem;
+    color: var(--accent);
+    margin: 0 0 0.75rem 0;
+  }
+
+  .job-highlights {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+  }
+
+  .job-highlights li {
+    padding: 0.35rem 0;
+    padding-left: 1rem;
+    position: relative;
+  }
+
+  .job-highlights li::before {
+    content: "▹";
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+  }
+
+  .projects-cell {
+    overflow: auto;
+  }
+
+  .project-card {
+    position: relative;
+    padding: 1.5rem;
+    background: var(--bg-tertiary);
+    border-radius: 12px;
+    margin-bottom: 1rem;
+  }
+
+  .project-card:last-child {
+    margin-bottom: 0;
+  }
+
+  .project-card .chip {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    background: var(--accent);
+    color: var(--bg-primary);
+    border-radius: 6px;
+  }
+
+  .project-card .chip.dev {
+    background: #8b5cf6;
+  }
+
+  .project-card h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 0.5rem 0;
+    padding-right: 4rem;
+  }
+
+  .project-stack {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin: 0 0 1rem 0;
+    font-family: "Space Mono", monospace;
+  }
+
+  .sep {
+    color: var(--border);
+  }
+
+  .project-highlights {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+  }
+
+  .project-highlights li {
+    padding: 0.35rem 0;
+    padding-left: 1rem;
+    position: relative;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .project-highlights li:last-child {
+    border-bottom: none;
+  }
+
+  .project-highlights li::before {
+    content: "→";
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+  }
+
+  .certs-cell .certs-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .cert-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1.25rem;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    cursor: pointer;
+    width: fit-content;
+  }
+
+  .cert-badge:hover {
+    border-color: var(--accent);
+  }
+
+  .footer-cell {
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+  }
+
+  .footer-logo {
+    font-size: 1.25rem;
+    font-weight: 700;
+    font-family: "Space Mono", monospace;
+  }
+
+  .logo-bracket {
+    color: var(--accent);
+  }
+
+  .logo-text {
+    color: var(--text-primary);
+  }
+
+  .footer-cell p {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin: 0.5rem 0 0 0;
+  }
+
+  .pdf-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+  }
+
+  .pdf-content {
+    position: relative;
+    width: 100%;
+    max-width: 900px;
+    height: 90vh;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .pdf-content iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+  }
+
+  @media (max-width: 900px) {
+    .grid-container {
+      padding: 0.5rem;
+    }
+
+    .grid-cell {
+      position: relative;
+      width: 100% !important;
+      height: auto !important;
+      left: auto !important;
+      top: auto !important;
+      margin-bottom: 0.5rem;
+      max-height: none;
+    }
+
+    .grid-layout {
+      position: relative;
+      overflow-y: auto;
+    }
+  }
 </style>

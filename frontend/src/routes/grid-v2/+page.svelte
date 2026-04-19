@@ -1,82 +1,125 @@
 <script lang="ts">
-import { onMount } from "svelte"
-import Terminal from "$lib/components/Terminal.svelte"
-import { contact, skills, experience } from "$lib/profile"
+  import { onMount } from "svelte";
+  import Terminal from "$lib/components/Terminal.svelte";
+  import { contact, skills, experience } from "$lib/profile";
 
-let showPdf = $state(false)
+  let showPdf = $state(false);
 
-interface Section {
-  id: string
-  name: string
-  priority: number
-  height: "small" | "medium" | "large" | "xlarge"
-  content: "header" | "terminal" | "about" | "skills" | "experience" | "projects" | "certs" | "footer"
-}
-
-let sections: Section[] = $state([
-  { id: "header", name: "Header", priority: 4, height: "medium", content: "header" },
-  { id: "terminal", name: "Terminal", priority: 3, height: "medium", content: "terminal" },
-  { id: "about", name: "About", priority: 5, height: "medium", content: "about" },
-  { id: "skills", name: "Skills", priority: 6, height: "medium", content: "skills" },
-  { id: "experience", name: "Experience", priority: 10, height: "xlarge", content: "experience" },
-  { id: "projects", name: "Projects", priority: 2, height: "large", content: "projects" },
-  { id: "certs", name: "Certifications", priority: 1, height: "small", content: "certs" },
-  { id: "footer", name: "Footer", priority: 1, height: "small", content: "footer" },
-])
-
-let columnCount = $state(3)
-
-onMount(() => {
-  function updateColumns() {
-    const vw = window.innerWidth
-    if (vw > 1800) {
-      columnCount = 4
-    } else if (vw > 1400) {
-      columnCount = 3
-    } else if (vw > 900) {
-      columnCount = 2
-    } else {
-      columnCount = 1
-    }
+  interface Section {
+    id: string;
+    name: string;
+    priority: number;
+    height: "small" | "medium" | "large" | "xlarge";
+    content:
+      | "header"
+      | "terminal"
+      | "about"
+      | "skills"
+      | "experience"
+      | "projects"
+      | "certs"
+      | "footer";
   }
 
-  updateColumns()
-  window.addEventListener("resize", updateColumns)
-  return () => window.removeEventListener("resize", updateColumns)
-})
+  let sections: Section[] = $state([
+    {
+      id: "header",
+      name: "Header",
+      priority: 4,
+      height: "medium",
+      content: "header",
+    },
+    {
+      id: "terminal",
+      name: "Terminal",
+      priority: 3,
+      height: "medium",
+      content: "terminal",
+    },
+    {
+      id: "about",
+      name: "About",
+      priority: 5,
+      height: "medium",
+      content: "about",
+    },
+    {
+      id: "skills",
+      name: "Skills",
+      priority: 6,
+      height: "medium",
+      content: "skills",
+    },
+    {
+      id: "experience",
+      name: "Experience",
+      priority: 10,
+      height: "xlarge",
+      content: "experience",
+    },
+    {
+      id: "projects",
+      name: "Projects",
+      priority: 2,
+      height: "large",
+      content: "projects",
+    },
+    {
+      id: "certs",
+      name: "Certifications",
+      priority: 1,
+      height: "small",
+      content: "certs",
+    },
+    {
+      id: "footer",
+      name: "Footer",
+      priority: 1,
+      height: "small",
+      content: "footer",
+    },
+  ]);
 
-function openPdf() {
-  showPdf = true
-}
+  let columnCount = $state(3);
 
-function closePdf() {
-  showPdf = false
-}
+  onMount(() => {
+    function updateColumns() {
+      const vw = window.innerWidth;
+      if (vw > 1800) {
+        columnCount = 4;
+      } else if (vw > 1400) {
+        columnCount = 3;
+      } else if (vw > 900) {
+        columnCount = 2;
+      } else {
+        columnCount = 1;
+      }
+    }
+
+    updateColumns();
+    window.addEventListener("resize", updateColumns);
+    return () => window.removeEventListener("resize", updateColumns);
+  });
+
+  function openPdf() {
+    showPdf = true;
+  }
+
+  function closePdf() {
+    showPdf = false;
+  }
 </script>
 
 <div class="masonry-layout" style="--cols: {columnCount};">
-  <nav class="grid-nav">
-    <a href="/" class="nav-link">
-      <i>view_agenda</i>
-      <span>Linear</span>
-    </a>
-    <a href="/grid" class="nav-link">
-      <i>grid_view</i>
-      <span>Grid</span>
-    </a>
-    <a href="/grid-v2" class="nav-link active">
-      <i>apps</i>
-      <span>Masonry</span>
-    </a>
-  </nav>
-
   <div class="masonry-grid">
     {#each sections as section}
       <div class="masonry-item" data-height={section.height}>
         <div class="masonry-cell">
           {#if section.content === "header"}
             <div class="cell-content header-cell">
-              <figure class="avatar"><img src="/headshot.webp" alt="Vladimir Kolchurin"></figure>
+              <figure class="avatar">
+                <img src="/headshot.webp" alt="Vladimir Kolchurin" />
+              </figure>
               <div class="header-text">
                 <div class="status-line">
                   <span class="prompt">❯</span>
@@ -92,11 +135,19 @@ function closePdf() {
                     <span class="value">{contact.email}</span>
                   </a>
                   <div class="contact-links">
-                    <a href="https://{contact.github}" target="_blank" rel="noopener" class="secondary-link">
+                    <a
+                      href="https://{contact.github}"
+                      target="_blank"
+                      rel="noopener"
+                      class="secondary-link"
+                    >
                       <i>code</i>
                       {contact.github}
                     </a>
-                    <a href="tel:{contact.phone.replace(/\s/g, '')}" class="secondary-link">
+                    <a
+                      href="tel:{contact.phone.replace(/\s/g, '')}"
+                      class="secondary-link"
+                    >
                       <i>phone</i>
                       {contact.phone}
                     </a>
@@ -105,9 +156,7 @@ function closePdf() {
               </div>
             </div>
           {:else if section.content === "terminal"}
-            <div class="cell-content terminal-cell">
-              <Terminal />
-            </div>
+            <div class="cell-content terminal-cell"><Terminal /></div>
           {:else if section.content === "about"}
             <div class="cell-content about-cell">
               <div class="section-header">
@@ -115,11 +164,13 @@ function closePdf() {
                 <h2 class="section-title">About</h2>
               </div>
               <p class="about-text">
-                I specialize in building <span class="highlight">resilient backend architectures</span>,
-                distributed data pipelines, and declarative development environments. With a background in
-                enterprise networking and a <span class="highlight">DevOps-first</span> mindset, I excel at
-                solving complex synchronization and infrastructure challenges—moving beyond the UI to
-                engineer robust, high-performance systems.
+                I specialize in building
+                <span class="highlight">resilient backend architectures</span>,
+                distributed data pipelines, and declarative development
+                environments. With a background in enterprise networking and a
+                <span class="highlight">DevOps-first</span> mindset, I excel at solving
+                complex synchronization and infrastructure challenges—moving beyond
+                the UI to engineer robust, high-performance systems.
               </p>
               <div class="stats">
                 <div class="stat">
@@ -207,31 +258,55 @@ function closePdf() {
                 <div class="chip">AI</div>
                 <h3>Hybrid AI & Infrastructure Lab</h3>
                 <p class="project-stack">
-                  <i class="tiny">cloud</i>Docker Compose<span class="sep">•</span><i class="tiny">language</i>Traefik<span class="sep">•</span><i class="tiny">vpn</i>WireGuard
+                  <i class="tiny">cloud</i>Docker Compose<span class="sep"
+                    >•</span
+                  ><i class="tiny">language</i>Traefik<span class="sep">•</span
+                  ><i class="tiny">vpn</i>WireGuard
                 </p>
                 <ul class="project-highlights">
-                  <li>Multi-node AI inference system with Docker Compose and Traefik reverse proxy</li>
-                  <li>Secure routing between public VPS services and private Ollama via WireGuard</li>
-                  <li>Tool-augmented local inference with Open-WebUI + external search APIs</li>
-                  <li>Custom LLM-powered Neovim workflow (CopilotChat + LiteLLM)</li>
+                  <li>
+                    Multi-node AI inference system with Docker Compose and
+                    Traefik reverse proxy
+                  </li>
+                  <li>
+                    Secure routing between public VPS services and private
+                    Ollama via WireGuard
+                  </li>
+                  <li>
+                    Tool-augmented local inference with Open-WebUI + external
+                    search APIs
+                  </li>
+                  <li>
+                    Custom LLM-powered Neovim workflow (CopilotChat + LiteLLM)
+                  </li>
                 </ul>
               </article>
               <article class="project-card">
                 <div class="chip dev">Dev</div>
                 <h3>Declarative Development Sandbox</h3>
                 <p class="project-stack">
-                  <i class="tiny">code</i>NixOS<span class="sep">•</span><i class="tiny">inventory_2</i>Podman
+                  <i class="tiny">code</i>NixOS<span class="sep">•</span><i
+                    class="tiny">inventory_2</i
+                  >Podman
                 </p>
                 <ul class="project-highlights">
-                  <li>Reproducible dev environment using Nix Flakes with NVIDIA drivers & GPU-accelerated Android emulators</li>
-                  <li>Portable container orchestration with Podman-compose across NixOS and macOS</li>
+                  <li>
+                    Reproducible dev environment using Nix Flakes with NVIDIA
+                    drivers & GPU-accelerated Android emulators
+                  </li>
+                  <li>
+                    Portable container orchestration with Podman-compose across
+                    NixOS and macOS
+                  </li>
                 </ul>
               </article>
             </div>
           {:else if section.content === "certs"}
             <div class="cell-content certs-cell">
               <div class="section-header">
-                <span class="section-icon"><i class="extra">workspace_premium</i></span>
+                <span class="section-icon"
+                  ><i class="extra">workspace_premium</i></span
+                >
                 <h2 class="section-title">Certifications</h2>
               </div>
               <div class="certs-list">
@@ -260,653 +335,625 @@ function closePdf() {
 </div>
 
 {#if showPdf}
-  <div class="pdf-modal" onclick={closePdf} onkeydown={(e) => e.key === "Escape" && closePdf()} role="dialog" aria-modal="true" tabindex="-1">
-    <div class="pdf-content" role="document" onclick={(e) => e.stopPropagation()}>
-      <iframe src="/2019-ECSE-Certificate-ekahau-Vladimir_Kolchurin.pdf" title="Ekahau ECSE Certificate"></iframe>
+  <div
+    class="pdf-modal"
+    onclick={closePdf}
+    onkeydown={(e) => e.key === "Escape" && closePdf()}
+    role="dialog"
+    aria-modal="true"
+    tabindex="-1"
+  >
+    <div
+      class="pdf-content"
+      role="document"
+      onclick={(e) => e.stopPropagation()}
+    >
+      <iframe
+        src="/2019-ECSE-Certificate-ekahau-Vladimir_Kolchurin.pdf"
+        title="Ekahau ECSE Certificate"
+      ></iframe>
     </div>
   </div>
 {/if}
 
 <style>
-.masonry-layout {
-  min-height: 100vh;
-  background: var(--bg-primary);
-  padding: 1.5rem;
-  padding-top: 5rem;
-}
-
-.grid-nav {
-  position: fixed;
-  top: 1rem;
-  left: 1rem;
-  z-index: 1000;
-  display: flex;
-  gap: 0.5rem;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 0.25rem;
-}
-
-.nav-link {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  color: var(--text-secondary);
-  font-size: 0.85rem;
-  border-radius: 8px;
-  transition: all 0.2s;
-  text-decoration: none;
-}
-
-.nav-link:hover {
-  color: var(--text-primary);
-}
-
-.nav-link.active {
-  background: var(--accent);
-  color: var(--bg-primary);
-}
-
-.nav-link i {
-  font-size: 1.1rem;
-}
-
-.masonry-grid {
-  column-count: var(--cols, 3);
-  column-gap: 12px;
-}
-
-.masonry-item {
-  break-inside: avoid;
-  margin-bottom: 12px;
-}
-
-.masonry-item[data-height="small"] {
-  min-height: 180px;
-}
-
-.masonry-item[data-height="medium"] {
-  min-height: 350px;
-}
-
-.masonry-item[data-height="large"] {
-  min-height: 450px;
-}
-
-.masonry-item[data-height="xlarge"] {
-  min-height: 550px;
-}
-
-.masonry-cell {
-  height: 100%;
-  min-height: inherit;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 2rem;
-  transition: border-color 0.2s, transform 0.2s;
-}
-
-.masonry-cell:hover {
-  border-color: var(--accent);
-}
-
-.cell-content {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.section-header {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-  flex-shrink: 0;
-}
-
-.section-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  background: linear-gradient(135deg, var(--accent), var(--accent-dim));
-  border-radius: 12px;
-  color: var(--bg-primary);
-}
-
-.section-title {
-  font-size: 1.75rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0;
-}
-
-.avatar {
-  width: 120px;
-  height: 120px;
-  border-radius: 0;
-  border: 3px solid var(--border);
-  overflow: hidden;
-  flex-shrink: 0;
-}
-
-.avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.header-cell {
-  flex-direction: row;
-  gap: 2rem;
-  align-items: flex-start;
-}
-
-.header-text {
-  display: flex;
-  flex-direction: column;
-}
-
-.status-line {
-  font-family: "Space Mono", monospace;
-  font-size: 0.85rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
-}
-
-.prompt {
-  color: var(--accent);
-}
-
-.status {
-  color: #22c55e;
-}
-
-.name {
-  font-size: 2rem;
-  font-weight: 700;
-  margin: 0 0 0.25rem 0;
-  line-height: 1.2;
-}
-
-.tagline {
-  font-size: 1.25rem;
-  color: var(--accent);
-  font-weight: 500;
-  margin: 0 0 1rem 0;
-}
-
-.command-line {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-family: "Space Mono", monospace;
-  font-size: 0.85rem;
-  padding: 0.5rem 0.75rem;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border);
-  color: var(--text-primary);
-  text-decoration: none;
-  width: fit-content;
-  margin-bottom: 0.75rem;
-}
-
-.command-line:hover {
-  border-color: var(--accent);
-}
-
-.command-line .prompt {
-  font-weight: 700;
-}
-
-.cmd {
-  color: var(--text-primary);
-}
-
-.arg {
-  color: var(--text-muted);
-}
-
-.value {
-  color: var(--accent);
-}
-
-.contact-secondary {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.contact-links {
-  display: flex;
-  gap: 1.5rem;
-  font-size: 0.85rem;
-}
-
-.secondary-link {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: var(--text-secondary);
-  font-family: "Space Mono", monospace;
-}
-
-.secondary-link:hover {
-  color: var(--accent);
-}
-
-.terminal-cell {
-  padding: 0;
-  min-height: 280px;
-}
-
-.terminal-cell :global(.terminal) {
-  height: 100%;
-}
-
-.terminal-cell :global(.terminal-window) {
-  height: 100%;
-  border-radius: 12px;
-}
-
-.about-cell {
-  gap: 0.5rem;
-}
-
-.about-text {
-  font-size: 1.1rem;
-  color: var(--text-secondary);
-  line-height: 1.8;
-  margin: 0 0 1.5rem 0;
-  flex: 1;
-}
-
-.highlight {
-  color: var(--accent);
-  font-weight: 500;
-}
-
-.stats {
-  display: flex;
-  gap: 2rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid var(--border);
-  flex-shrink: 0;
-}
-
-.stat {
-  display: flex;
-  flex-direction: column;
-}
-
-.stat-value {
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--accent);
-  line-height: 1;
-}
-
-.stat-label {
-  font-size: 0.85rem;
-  color: var(--text-muted);
-}
-
-.skills-cell {
-  overflow: auto;
-}
-
-.skills-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
-  flex: 1;
-}
-
-.skill-category {
-  padding: 1.25rem;
-  background: var(--bg-tertiary);
-  border-radius: 12px;
-  transition: transform 0.2s, border-color 0.2s;
-}
-
-.skill-category:hover {
-  transform: translateY(-2px);
-  border-color: var(--accent);
-}
-
-.skill-icon {
-  width: 36px;
-  height: 36px;
-  background: rgba(34, 211, 238, 0.1);
-  border-radius: 10px;
-  color: var(--accent);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 0.75rem;
-}
-
-.skill-category h4 {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0 0 0.75rem 0;
-}
-
-.skill-category ul {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.skill-category li {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-  padding: 0.25rem 0;
-}
-
-.skill-dot {
-  width: 6px;
-  height: 6px;
-  background: var(--accent);
-  border-radius: 50%;
-}
-
-.experience-cell {
-  overflow: auto;
-}
-
-.timeline {
-  flex: 1;
-  overflow: auto;
-}
-
-.timeline-item {
-  display: flex;
-  gap: 1.25rem;
-  margin-bottom: 1.5rem;
-}
-
-.timeline-item:last-child {
-  margin-bottom: 0;
-}
-
-.timeline-marker {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  flex-shrink: 0;
-}
-
-.marker-dot {
-  width: 16px;
-  height: 16px;
-  background: var(--accent);
-  border-radius: 50%;
-  box-shadow: 0 0 0 4px var(--bg-primary), 0 0 0 5px var(--accent);
-}
-
-.marker-line {
-  width: 2px;
-  flex: 1;
-  background: linear-gradient(180deg, var(--accent), var(--border));
-  margin-top: 0.5rem;
-}
-
-.timeline-content {
-  flex: 1;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 1.25rem;
-}
-
-.timeline-content:hover {
-  border-color: var(--accent-dim);
-}
-
-.timeline-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
-}
-
-.timeline-company {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.timeline-period {
-  font-size: 0.85rem;
-  color: var(--text-muted);
-}
-
-.timeline-title {
-  font-size: 0.95rem;
-  color: var(--accent);
-  margin: 0 0 0.75rem 0;
-}
-
-.job-highlights {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-}
-
-.job-highlights li {
-  padding: 0.35rem 0;
-  padding-left: 1rem;
-  position: relative;
-}
-
-.job-highlights li::before {
-  content: "▹";
-  position: absolute;
-  left: 0;
-  color: var(--accent);
-}
-
-.projects-cell {
-  overflow: auto;
-}
-
-.project-card {
-  position: relative;
-  padding: 1.5rem;
-  background: var(--bg-tertiary);
-  border-radius: 12px;
-  margin-bottom: 1rem;
-}
-
-.project-card:last-child {
-  margin-bottom: 0;
-}
-
-.project-card .chip {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  padding: 0.25rem 0.75rem;
-  font-size: 0.7rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  background: var(--accent);
-  color: var(--bg-primary);
-  border-radius: 6px;
-}
-
-.project-card .chip.dev {
-  background: #8b5cf6;
-}
-
-.project-card h3 {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0 0 0.5rem 0;
-  padding-right: 4rem;
-}
-
-.project-stack {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  margin: 0 0 1rem 0;
-  font-family: "Space Mono", monospace;
-}
-
-.sep {
-  color: var(--border);
-}
-
-.project-highlights {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-}
-
-.project-highlights li {
-  padding: 0.35rem 0;
-  padding-left: 1rem;
-  position: relative;
-  border-bottom: 1px solid var(--border);
-}
-
-.project-highlights li:last-child {
-  border-bottom: none;
-}
-
-.project-highlights li::before {
-  content: "→";
-  position: absolute;
-  left: 0;
-  color: var(--accent);
-}
-
-.certs-cell .certs-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.cert-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1.25rem;
-  font-size: 0.95rem;
-  color: var(--text-primary);
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  cursor: pointer;
-  width: fit-content;
-}
-
-.cert-badge:hover {
-  border-color: var(--accent);
-}
-
-.footer-cell {
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-}
-
-.footer-logo {
-  font-size: 1.25rem;
-  font-weight: 700;
-  font-family: "Space Mono", monospace;
-}
-
-.logo-bracket {
-  color: var(--accent);
-}
-
-.logo-text {
-  color: var(--text-primary);
-}
-
-.footer-cell p {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  margin: 0.5rem 0 0 0;
-}
-
-.pdf-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
-  z-index: 2000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-}
-
-.pdf-content {
-  position: relative;
-  width: 100%;
-  max-width: 900px;
-  height: 90vh;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-.pdf-content iframe {
-  width: 100%;
-  height: 100%;
-  border: none;
-}
-
-@media (max-width: 900px) {
-  .grid-nav {
-    top: auto;
-    bottom: 1rem;
-    left: 50%;
-    transform: translateX(-50%);
-  }
-
-  .nav-link span {
-    display: none;
-  }
-
   .masonry-layout {
-    padding: 0.5rem;
-    padding-top: 4rem;
+    min-height: 100vh;
+    background: var(--bg-primary);
+    padding: 1.5rem;
+    padding-top: 5rem;
   }
 
   .masonry-grid {
-    column-count: 1;
+    column-count: var(--cols, 3);
+    column-gap: 12px;
   }
 
   .masonry-item {
+    break-inside: avoid;
+    margin-bottom: 12px;
+  }
+
+  .masonry-item[data-height="small"] {
+    min-height: 180px;
+  }
+
+  .masonry-item[data-height="medium"] {
+    min-height: 350px;
+  }
+
+  .masonry-item[data-height="large"] {
+    min-height: 450px;
+  }
+
+  .masonry-item[data-height="xlarge"] {
+    min-height: 550px;
+  }
+
+  .masonry-cell {
+    height: 100%;
+    min-height: inherit;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 2rem;
+    transition:
+      border-color 0.2s,
+      transform 0.2s;
+  }
+
+  .masonry-cell:hover {
+    border-color: var(--accent);
+  }
+
+  .cell-content {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    flex-shrink: 0;
+  }
+
+  .section-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-dim));
+    border-radius: 12px;
+    color: var(--bg-primary);
+  }
+
+  .section-title {
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+  }
+
+  .avatar {
+    width: 120px;
+    height: 120px;
+    border-radius: 0;
+    border: 3px solid var(--border);
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .header-cell {
+    flex-direction: row;
+    gap: 2rem;
+    align-items: flex-start;
+  }
+
+  .header-text {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .status-line {
+    font-family: "Space Mono", monospace;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .prompt {
+    color: var(--accent);
+  }
+
+  .status {
+    color: #22c55e;
+  }
+
+  .name {
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 0 0 0.25rem 0;
+    line-height: 1.2;
+  }
+
+  .tagline {
+    font-size: 1.25rem;
+    color: var(--accent);
+    font-weight: 500;
+    margin: 0 0 1rem 0;
+  }
+
+  .command-line {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: "Space Mono", monospace;
+    font-size: 0.85rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    text-decoration: none;
+    width: fit-content;
+    margin-bottom: 0.75rem;
+  }
+
+  .command-line:hover {
+    border-color: var(--accent);
+  }
+
+  .command-line .prompt {
+    font-weight: 700;
+  }
+
+  .cmd {
+    color: var(--text-primary);
+  }
+
+  .arg {
+    color: var(--text-muted);
+  }
+
+  .value {
+    color: var(--accent);
+  }
+
+  .contact-secondary {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .contact-links {
+    display: flex;
+    gap: 1.5rem;
+    font-size: 0.85rem;
+  }
+
+  .secondary-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-secondary);
+    font-family: "Space Mono", monospace;
+  }
+
+  .secondary-link:hover {
+    color: var(--accent);
+  }
+
+  .terminal-cell {
+    padding: 0;
+    min-height: 280px;
+  }
+
+  .terminal-cell :global(.terminal) {
+    height: 100%;
+  }
+
+  .terminal-cell :global(.terminal-window) {
+    height: 100%;
+    border-radius: 12px;
+  }
+
+  .about-cell {
+    gap: 0.5rem;
+  }
+
+  .about-text {
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+    line-height: 1.8;
+    margin: 0 0 1.5rem 0;
+    flex: 1;
+  }
+
+  .highlight {
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  .stats {
+    display: flex;
+    gap: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .stat {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+
+  .skills-cell {
+    overflow: auto;
+  }
+
+  .skills-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    flex: 1;
+  }
+
+  .skill-category {
+    padding: 1.25rem;
+    background: var(--bg-tertiary);
+    border-radius: 12px;
+    transition:
+      transform 0.2s,
+      border-color 0.2s;
+  }
+
+  .skill-category:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent);
+  }
+
+  .skill-icon {
+    width: 36px;
+    height: 36px;
+    background: rgba(34, 211, 238, 0.1);
+    border-radius: 10px;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0.75rem;
+  }
+
+  .skill-category h4 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 0.75rem 0;
+  }
+
+  .skill-category ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .skill-category li {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    padding: 0.25rem 0;
+  }
+
+  .skill-dot {
+    width: 6px;
+    height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+  }
+
+  .experience-cell {
+    overflow: auto;
+  }
+
+  .timeline {
+    flex: 1;
+    overflow: auto;
+  }
+
+  .timeline-item {
+    display: flex;
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .timeline-item:last-child {
+    margin-bottom: 0;
+  }
+
+  .timeline-marker {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .marker-dot {
+    width: 16px;
+    height: 16px;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow:
+      0 0 0 4px var(--bg-primary),
+      0 0 0 5px var(--accent);
+  }
+
+  .marker-line {
+    width: 2px;
+    flex: 1;
+    background: linear-gradient(180deg, var(--accent), var(--border));
+    margin-top: 0.5rem;
+  }
+
+  .timeline-content {
+    flex: 1;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+  }
+
+  .timeline-content:hover {
+    border-color: var(--accent-dim);
+  }
+
+  .timeline-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 0.5rem;
     margin-bottom: 0.5rem;
   }
-}
+
+  .timeline-company {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .timeline-period {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+
+  .timeline-title {
+    font-size: 0.95rem;
+    color: var(--accent);
+    margin: 0 0 0.75rem 0;
+  }
+
+  .job-highlights {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+  }
+
+  .job-highlights li {
+    padding: 0.35rem 0;
+    padding-left: 1rem;
+    position: relative;
+  }
+
+  .job-highlights li::before {
+    content: "▹";
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+  }
+
+  .projects-cell {
+    overflow: auto;
+  }
+
+  .project-card {
+    position: relative;
+    padding: 1.5rem;
+    background: var(--bg-tertiary);
+    border-radius: 12px;
+    margin-bottom: 1rem;
+  }
+
+  .project-card:last-child {
+    margin-bottom: 0;
+  }
+
+  .project-card .chip {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    background: var(--accent);
+    color: var(--bg-primary);
+    border-radius: 6px;
+  }
+
+  .project-card .chip.dev {
+    background: #8b5cf6;
+  }
+
+  .project-card h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 0.5rem 0;
+    padding-right: 4rem;
+  }
+
+  .project-stack {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin: 0 0 1rem 0;
+    font-family: "Space Mono", monospace;
+  }
+
+  .sep {
+    color: var(--border);
+  }
+
+  .project-highlights {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+  }
+
+  .project-highlights li {
+    padding: 0.35rem 0;
+    padding-left: 1rem;
+    position: relative;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .project-highlights li:last-child {
+    border-bottom: none;
+  }
+
+  .project-highlights li::before {
+    content: "→";
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+  }
+
+  .certs-cell .certs-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .cert-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1.25rem;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    cursor: pointer;
+    width: fit-content;
+  }
+
+  .cert-badge:hover {
+    border-color: var(--accent);
+  }
+
+  .footer-cell {
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+  }
+
+  .footer-logo {
+    font-size: 1.25rem;
+    font-weight: 700;
+    font-family: "Space Mono", monospace;
+  }
+
+  .logo-bracket {
+    color: var(--accent);
+  }
+
+  .logo-text {
+    color: var(--text-primary);
+  }
+
+  .footer-cell p {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin: 0.5rem 0 0 0;
+  }
+
+  .pdf-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+  }
+
+  .pdf-content {
+    position: relative;
+    width: 100%;
+    max-width: 900px;
+    height: 90vh;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .pdf-content iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+  }
+
+  @media (max-width: 900px) {
+    .masonry-layout {
+      padding: 0.5rem;
+      padding-top: 4.5rem;
+    }
+
+    .masonry-grid {
+      column-count: 1;
+    }
+
+    .masonry-item {
+      margin-bottom: 0.5rem;
+    }
+  }
 </style>
+
