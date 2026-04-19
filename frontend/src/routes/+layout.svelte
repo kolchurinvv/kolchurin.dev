@@ -1,6 +1,7 @@
 <script lang="ts">
 import "../app.css"
 import { onMount } from "svelte"
+import { page } from "$app/stores"
 
 let { children } = $props()
 
@@ -66,6 +67,15 @@ function updateBtnIcon() {
   ></script>
 </svelte:head>
 
+<div class="layout-nav">
+  <a href="/" class="nav-link" class:active={$page.url.pathname === "/"}>
+    <i>view_agenda</i>
+  </a>
+  <a href="/grid" class="nav-link" class:active={$page.url.pathname === "/grid"}>
+    <i>grid_view</i>
+  </a>
+</div>
+
 <button
   bind:this={themeBtn}
   type="button"
@@ -109,5 +119,43 @@ function updateBtnIcon() {
 .theme-toggle:hover {
   border-color: var(--accent);
   color: var(--accent);
+}
+
+.layout-nav {
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  z-index: 1000;
+  display: flex;
+  gap: 0.25rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.25rem;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  color: var(--text-secondary);
+  border-radius: 8px;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+
+.nav-link:hover {
+  color: var(--text-primary);
+}
+
+.nav-link.active {
+  background: var(--accent);
+  color: var(--bg-primary);
+}
+
+.nav-link i {
+  font-size: 1.25rem;
 }
 </style>
