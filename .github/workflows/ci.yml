@@ -42,3 +42,8 @@ jobs:
         run: |
           podman push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ github.sha }}
           podman push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:latest
+
+      - name: Trigger Dokploy deployment
+        if: github.event_name != 'pull_request'
+        run: |
+          curl -X POST https://app.dokploy.com/api/deploy/YIUS7MXt-JDLs2DShE-D4
