@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package guestbook.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "internal/rpc/guestbook/v1;guestbookv1";
+
+service GuestbookService {
+  rpc PostMessage(PostMessageRequest) returns (PostMessageResponse);
+  rpc GetMessages(GetMessagesRequest) returns (GetMessagesResponse);
+}
+
+message PostMessageRequest {
+  optional string name = 1;
+  optional string nick = 2;
+  optional string email = 3;
+  string message = 4;
+}
+
+message PostMessageResponse {
+  bool success = 1;
+}
+
+message GetMessagesRequest {
+  int32 limit = 1;
+}
+
+message GetMessagesResponse {
+  repeated MessageEntry messages = 1;
+}
+
+message MessageEntry {
+  optional string name = 1;
+  string nick = 2;
+  string message = 3;
+  google.protobuf.Timestamp ts = 4;
+}
