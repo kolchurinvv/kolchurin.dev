@@ -22,6 +22,7 @@
             vitejs
             nodejs_25 # needed for nvim plugins
 
+            buf
             protobuf
             protoc-gen-go
             protoc-gen-go-grpc
