@@ -2,9 +2,13 @@ package db
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"time"
 
 	"github.com/valkey-io/valkey-go"
+	"google.golang.org/protobuf/proto"
+	pb "kolchurin.dev/backend/internal/rpc/guestbook/v1"
 )
 
 type Client struct {
@@ -37,4 +41,14 @@ func (c *Client) Ping(ctx context.Context) error {
 
 func (c *Client) Do(ctx context.Context, cmd valkey.Completed) valkey.ValkeyResult {
 	return c.client.Do(ctx, cmd)
+}
+
+func (c *Client) SaveMessage(ctx context.Context, entry *pb.MessageEntry) error {
+	key := fmt.Sprintf("guestbook:%d", time.Now().UnixMilli())
+	data, err := proto.Marshal(entry)
+	if err != nil {
+		return err
+	}
+	result := c.client.Do(ctx, c.client.B().Set().Key(key).Value(string(data)).Build())
+	return result.Error()
 }
