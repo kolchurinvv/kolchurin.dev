@@ -21,6 +21,7 @@
             bun
             vitejs
             nodejs_25 # needed for nvim plugins
+            playwright-driver
 
             buf
             protobuf
@@ -30,6 +31,10 @@
           ];
 
           shellHook = ''
+            export PLAYWRIGHT_NODEJS_PATH="${pkgs.nodejs_25}/bin/node"
+            export PLAYWRIGHT_DRIVER_PATH="${pkgs.playwright-driver}/cli.js"
+            export PLAYWRIGHT_BROWSERS_PATH="${pkgs.playwright-driver.browsers}"
+            export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
           '';
         };
       });

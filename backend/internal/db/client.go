@@ -43,12 +43,29 @@ func (c *Client) Do(ctx context.Context, cmd valkey.Completed) valkey.ValkeyResu
 	return c.client.Do(ctx, cmd)
 }
 
+func (c *Client) SaveHuman(ctx context.Context, email, author string) error {
+	if email == "" || author == "" {
+		return fmt.Errorf("email and author are required")
+	}
+	key := fmt.Sprintf("human:%s", email)
+	keyExists, err := c.Do(ctx, c.client.B().Exists().Key(key).Build()).AsBool()
+	if err != nil {
+		return err
+	}
+	if keyExists {
+		return fmt.Errorf("this email has been taken")
+	}
+
+	res := c.Do(ctx, c.client.B().Set().Key(key).Value(author).Build())
+	return res.Error()
+}
+
 func (c *Client) SaveMessage(ctx context.Context, entry *pb.MessageEntry) error {
-	key := fmt.Sprintf("guestbook:%d", time.Now().UnixMilli())
+	key := fmt.Sprintf("guestbook-msg:%d", time.Now().UnixMilli())
 	data, err := proto.Marshal(entry)
 	if err != nil {
 		return err
 	}
-	result := c.client.Do(ctx, c.client.B().Set().Key(key).Value(string(data)).Build())
+	result := c.Do(ctx, c.client.B().Set().Key(key).Value(string(data)).Build())
 	return result.Error()
 }
