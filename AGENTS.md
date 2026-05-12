@@ -248,6 +248,23 @@ TestUserService_GetByID_ReturnsUser
 TestBlogController_CreatePost_Unauthorized
 ```
 
+### Mandatory Agent Test Gates
+
+- **Agents must keep all tests green after every edit.**
+- A task is **not complete** if any relevant test suite fails.
+- At minimum, agents must run the relevant suites for touched code before handing off:
+  - Frontend changes: `bun run test` and `bun run test:e2e`
+  - Backend changes: `go test ./...`
+  - Cross-cutting changes: run both frontend and backend suites
+
+### New Feature Testing Requirement (Strict)
+
+- For **every new feature**, agents must add a complete test pipeline:
+  - **Unit tests** for business logic and edge cases
+  - **E2E tests** for user-visible flows and critical integration paths
+- Deliverables for a new feature are incomplete unless both test layers are implemented and passing.
+- If behavior changes, agents must update existing tests in both layers to match the new contract.
+
 ---
 
 ## Biome Configuration
