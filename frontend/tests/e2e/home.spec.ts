@@ -16,9 +16,7 @@ test.describe("home page", () => {
         return "none"
       })
 
-    await expect
-      .poll(getMode, { message: "theme should be initialized on body" })
-      .not.toBe("none")
+    await expect.poll(getMode, { message: "theme should be initialized on body" }).not.toBe("none")
 
     const initialMode = await getMode()
     await themeToggle.click()
