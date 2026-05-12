@@ -1,68 +1,25 @@
 <script lang="ts">
 import { onMount } from "svelte"
 import { skillsJson, experienceJson, contactText, aboutText, projects } from "$lib/profile"
-
-interface TerminalLine {
-  type: "input" | "output" | "error" | "code"
-  content: string
-}
-
-const commands = [
-  { name: "whoami", desc: "Display current user" },
-  { name: "pwd", desc: "Print working directory" },
-  { name: "cd", desc: "Change directory" },
-  { name: "ls", desc: "List files" },
-  { name: "cat", desc: "Display file contents" },
-  {
-    name: "contact",
-    desc: "Contact me via --email or --phone",
-    flags: ["--email", "--phone"],
-  },
-  { name: "clear", desc: "Clear terminal" },
-  { name: "help", desc: "Show this help message" },
-]
+import {
+  applySuggestion,
+  cycleSuggestionIndex,
+  executeCommand,
+  getSuggestions,
+  type TerminalLine,
+} from "$lib/components/terminal-logic"
 
 let selectedIndex = $state(-1)
 let suggestions = $state<string[]>([])
 
-function updateSuggestions(input: string) {
-  if (!input) {
-    suggestions = []
-    selectedIndex = -1
-    return
-  }
-  const partial = input.trim().toLowerCase()
-  const parts = partial.split(/\s+/)
-  if (parts.length === 1) {
-    suggestions = commands.filter((c) => c.name.startsWith(parts[0])).map((c) => c.name)
-  } else if (parts.length === 2 && parts[0] === "contact") {
-    const cmd = commands.find((c) => c.name === "contact")
-    suggestions = (cmd?.flags || []).filter((f) => f.startsWith(parts[1]))
-  } else if (parts.length === 2 && parts[0] === "cat") {
-    const files = directories[currentDir] || []
-    if (parts[1]) {
-      suggestions = files.filter((f) => f.toLowerCase().startsWith(parts[1]))
-    } else if (suggestions.length === 0) {
-      suggestions = files
-      selectedIndex = suggestions.length > 0 ? 0 : -1
-    }
-  } else if (parts.length === 2 && parts[0] === "cd") {
-    const dirs = directories[currentDir] || []
-    if (parts[1]) {
-      suggestions = dirs.filter((d) => d.toLowerCase().startsWith(parts[1]))
-    } else if (suggestions.length === 0) {
-      suggestions = dirs
-      selectedIndex = suggestions.length > 0 ? 0 : -1
-    }
-  } else {
-    suggestions = []
-  }
-  selectedIndex = suggestions.length > 0 ? 0 : -1
-}
-
 onMount(() => {
   inputRef?.focus()
 })
+
+function updateSuggestions(input: string) {
+  suggestions = getSuggestions(input, currentDir, directories)
+  selectedIndex = suggestions.length > 0 ? 0 : -1
+}
 
 function onInputChange(e: Event) {
   const target = e.target as HTMLInputElement
@@ -117,140 +74,25 @@ pkgs.mkShell {
 }`,
 }
 
-function getPrompt(): string {
-  return `vladimir@kolchurin:${currentDir.replace("~", "/home/vladimir")}$`
-}
-
 function handleCommand(input: string) {
-  const trimmed = input.trim()
-  if (!trimmed) return
-
-  lines.push({ type: "input", content: `${getPrompt()} ${trimmed}` })
-
-  const [cmd, ...args] = trimmed.split(/\s+/)
-
-  switch (cmd.toLowerCase()) {
-    case "whoami":
-      lines.push({ type: "output", content: "vladimir kolchurin" })
-      break
-
-    case "pwd":
-      lines.push({ type: "output", content: currentDir })
-      break
-
-    case "cd": {
-      const target = args[0] || "~"
-      if (target === "~" || target === "~/") {
-        currentDir = "~"
-      } else if (target === "..") {
-        if (currentDir !== "~") {
-          const parts = currentDir.split("/")
-          parts.pop()
-          currentDir = parts.join("/") || "~"
-        }
-      } else if (target.startsWith("~/")) {
-        currentDir = target
-      } else {
-        const newPath = currentDir === "~" ? `~/${target}` : `${currentDir}/${target}`
-        if (directories[newPath]) {
-          currentDir = newPath
-        } else {
-          lines.push({
-            type: "error",
-            content: `cd: no such directory: ${target}`,
-          })
-        }
-      }
-      break
+  const result = executeCommand(
+    {
+      lines,
+      currentDir,
+    },
+    input,
+    {
+      directories,
+      virtualFiles,
+      fileContents,
     }
+  )
 
-    case "ls":
-    case "ls -la":
-    case "ls -l":
-    case "ll": {
-      const dirKey = currentDir
-      const files = directories[dirKey] || []
-      if (args[0] === "-la" || args[0] === "-l" || cmd === "ll") {
-        const output = files.map((f) => {
-          const isDir = directories[`${dirKey}/${f}`] !== undefined
-          return `${isDir ? "drwxr-xr-x" : "-rw-r--r--"}  1 vladimir staff 4096 Apr 10  ${f}${isDir ? "/" : ""}`
-        })
-        lines.push({ type: "code", content: output.join("\n") })
-      } else {
-        lines.push({ type: "output", content: files.join("  ") })
-      }
-      break
-    }
+  lines = result.lines
+  currentDir = result.currentDir
 
-    case "cat": {
-      const filename = args[0]
-      if (!filename) {
-        lines.push({ type: "error", content: "cat: missing file operand" })
-      } else if (virtualFiles[filename]) {
-        lines.push({ type: "code", content: virtualFiles[filename] })
-      } else if (fileContents[currentDir + "/" + filename]) {
-        lines.push({
-          type: "code",
-          content: fileContents[currentDir + "/" + filename],
-        })
-      } else {
-        lines.push({
-          type: "error",
-          content: `cat: ${filename}: No such file`,
-        })
-      }
-      break
-    }
-
-    case "clear":
-      lines.length = 0
-      break
-
-    case "help":
-      lines.push({
-        type: "output",
-        content: `Available commands:
-  whoami        - Display current user
-  pwd           - Print working directory
-  cd <dir>      - Change directory
-  ls            - List files
-  cat <file>    - Display file contents
-  contact       - Contact me via --email or --phone
-  clear         - Clear terminal
-  help          - Show this help message
-
-Try: cat skills.json, cat experience.json, about.txt`,
-      })
-      break
-
-    case "contact": {
-      const flag = args[0]
-      if (flag === "--email") {
-        window.location.href = "mailto:vladimir@kolchurin.dev"
-        lines.push({
-          type: "output",
-          content: "Opening email client...",
-        })
-      } else if (flag === "--phone") {
-        window.location.href = "tel:+420605376615"
-        lines.push({
-          type: "output",
-          content: "Opening phone dialer...",
-        })
-      } else {
-        lines.push({
-          type: "error",
-          content: `contact: invalid flag '${flag}'. Use --email or --phone`,
-        })
-      }
-      break
-    }
-
-    default:
-      lines.push({
-        type: "error",
-        content: `${cmd}: command not found. Type 'help' for available commands.`,
-      })
+  if (result.effect?.type === "navigate") {
+    window.location.href = result.effect.href
   }
 
   currentInput = ""
@@ -259,23 +101,15 @@ Try: cat skills.json, cat experience.json, about.txt`,
 function handleKeyDown(e: KeyboardEvent) {
   if (e.key === "ArrowUp") {
     e.preventDefault()
-    if (suggestions.length > 0) {
-      selectedIndex = selectedIndex > 0 ? selectedIndex - 1 : suggestions.length - 1
-    }
+    selectedIndex = cycleSuggestionIndex(selectedIndex, suggestions.length, "up")
   } else if (e.key === "ArrowDown") {
     e.preventDefault()
-    if (suggestions.length > 0) {
-      selectedIndex = selectedIndex < suggestions.length - 1 ? selectedIndex + 1 : 0
-    }
+    selectedIndex = cycleSuggestionIndex(selectedIndex, suggestions.length, "down")
   } else if (e.key === "Tab") {
     e.preventDefault()
-    if (suggestions.length > 0 && selectedIndex >= 0) {
-      const parts = currentInput.trim().split(/\s+/)
-      parts[parts.length - 1] = suggestions[selectedIndex]
-      currentInput = parts.join(" ") + " "
-      suggestions = []
-      selectedIndex = -1
-    }
+    currentInput = applySuggestion(currentInput, suggestions, selectedIndex)
+    suggestions = []
+    selectedIndex = -1
   } else if (e.key === "Enter") {
     suggestions = []
     selectedIndex = -1

@@ -2,27 +2,16 @@
 import { onMount } from "svelte"
 import Terminal from "$lib/components/Terminal.svelte"
 import { contact, skills, experience } from "$lib/profile"
+import {
+  EKAHUA_ECSE_CERTIFICATE_PATH,
+  setupCertificatePreloadOnIntersect,
+} from "$lib/routes/certificates"
 
 let showPdf = $state(false)
 let certSection: HTMLElement
 
 onMount(() => {
-  const section = certSection
-  const observer = new IntersectionObserver(
-    (entries) => {
-      if (entries[0].isIntersecting) {
-        const link = document.createElement("link")
-        link.rel = "preload"
-        link.as = "fetch"
-        link.href = "/2019-ECSE-Certificate-ekahau-Vladimir_Kolchurin.pdf"
-        document.head.appendChild(link)
-        observer.disconnect()
-      }
-    },
-    { rootMargin: "200px" }
-  )
-  if (section) observer.observe(section)
-  return () => observer.disconnect()
+  return setupCertificatePreloadOnIntersect(certSection, document)
 })
 
 function openPdf() {
@@ -272,7 +261,7 @@ function closePdf() {
       </button>
 --->
       <iframe
-        src="/2019-ECSE-Certificate-ekahau-Vladimir_Kolchurin.pdf"
+        src={EKAHUA_ECSE_CERTIFICATE_PATH}
         title="Ekahau ECSE Certificate"
       ></iframe>
     </div>

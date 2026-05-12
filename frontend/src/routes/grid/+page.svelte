@@ -2,9 +2,14 @@
   import { onMount } from "svelte";
   import Terminal from "$lib/components/Terminal.svelte";
   import { contact, skills, experience } from "$lib/profile";
+  import { EKAHUA_ECSE_CERTIFICATE_PATH } from "$lib/routes/certificates";
+  import {
+    computePriorityLayout,
+    getCellStyleFromLayout,
+    resolveGridMetrics,
+  } from "$lib/routes/layout-logic";
 
   let showPdf = $state(false);
-  let certSection: HTMLElement;
 
   let viewportWidth = $state(0);
   let viewportHeight = $state(0);
@@ -45,33 +50,15 @@
     { id: "footer", name: "Footer", priority: 1, content: "footer" },
   ]);
 
-  function computeGrid() {
-    const vw = viewportWidth || 1920;
-    const vh = viewportHeight || 1080;
-    const aspectRatio = vw / vh;
+  function recomputeLayout() {
+    const metrics = resolveGridMetrics(viewportWidth, viewportHeight);
 
-    let cols = 3;
-    let rows = 3;
-    if (aspectRatio > 2.0) {
-      cols = 4;
-      rows = 3;
-    } else if (aspectRatio > 1.3) {
-      cols = 3;
-      rows = 3;
-    } else {
-      cols = 2;
-      rows = 4;
-    }
+    gridCols = metrics.gridCols;
+    gridRows = metrics.gridRows;
+    containerWidth = metrics.containerWidth;
+    containerHeight = metrics.containerHeight;
 
-    const w = vw - 48;
-    const h = vh - 48;
-
-    gridCols = cols;
-    gridRows = rows;
-    containerWidth = w;
-    containerHeight = h;
-
-    return computeLayout(cols, rows, w, h);
+    return computePriorityLayout(sections, metrics.gridCols, metrics.gridRows);
   }
 
   onMount(() => {
@@ -83,112 +70,6 @@
     });
   });
 
-  function computeLayout(
-    gridCols: number,
-    gridRows: number,
-    containerWidth: number,
-    containerHeight: number,
-  ) {
-    const centerCol = gridCols >= 3 ? 1 : 0;
-    const centerRow = gridRows >= 3 ? 1 : 0;
-
-    const newLayout: {
-      col: number;
-      row: number;
-      colSpan: number;
-      rowSpan: number;
-    }[] = [];
-
-    const usedCells = new Set<string>();
-
-    // Iterate in priority order (sections sorted DESC)
-    for (const section of sections) {
-      let placed = false;
-
-      // High priority = prefer center
-      const preferCenter = section.priority >= 5;
-      // Higher priority = larger span
-      const wantsLargeSpan = section.priority >= 3;
-
-      // Build position preference list
-      const positions: { col: number; row: number }[] = [];
-
-      if (preferCenter) {
-        positions.push({ col: centerCol, row: centerRow });
-      }
-
-      // Low priority prefers corners first
-      if (section.priority <= 2) {
-        for (let r = 0; r < gridRows; r++) {
-          for (let c = 0; c < gridCols; c++) {
-            // Corner: row 0 or last, col 0 or last
-            const isCorner =
-              (r === 0 || r === gridRows - 1) &&
-              (c === 0 || c === gridCols - 1);
-            if (isCorner) positions.unshift({ col: c, row: r });
-          }
-        }
-      }
-
-      // Fill remaining positions by row
-      for (let row = 0; row < gridRows; row++) {
-        for (let col = 0; col < gridCols; col++) {
-          if (!positions.some((p) => p.col === col && p.row === row)) {
-            positions.push({ col, row });
-          }
-        }
-      }
-
-      // Try each position
-      for (const pos of positions) {
-        let spanW = wantsLargeSpan ? (section.priority >= 5 ? 2 : 1) : 1;
-        let spanH = wantsLargeSpan && section.priority >= 5 ? 2 : 1;
-
-        if (pos.col + spanW > gridCols) spanW = 1;
-        if (pos.row + spanH > gridRows) spanH = 1;
-
-        let canFit = true;
-        for (let dy = 0; dy < spanH && canFit; dy++) {
-          for (let dx = 0; dx < spanW && canFit; dx++) {
-            if (usedCells.has(`${pos.col + dx},${pos.row + dy}`))
-              canFit = false;
-          }
-        }
-
-        if (canFit) {
-          newLayout.push({
-            col: pos.col,
-            row: pos.row,
-            colSpan: spanW,
-            rowSpan: spanH,
-          });
-          for (let dy = 0; dy < spanH; dy++) {
-            for (let dx = 0; dx < spanW; dx++) {
-              usedCells.add(`${pos.col + dx},${pos.row + dy}`);
-            }
-          }
-          placed = true;
-          break;
-        }
-      }
-
-      // Fallback: find first empty cell
-      if (!placed) {
-        for (let row = 0; row < gridRows && !placed; row++) {
-          for (let col = 0; col < gridCols && !placed; col++) {
-            if (!usedCells.has(`${col},${row}`)) {
-              newLayout.push({ col, row, colSpan: 1, rowSpan: 1 });
-              usedCells.add(`${col},${row}`);
-              placed = true;
-            }
-          }
-        }
-      }
-    }
-
-    return newLayout;
-  }
-
   function openPdf() {
     showPdf = true;
   }
@@ -198,21 +79,25 @@
   }
 
   function getCellStyle(index: number): string {
-    if (!layout[index]) return "display: none;";
     const cell = layout[index];
-    const cellW = (containerWidth / gridCols) * cell.colSpan;
-    const cellH = (containerHeight / gridRows) * cell.rowSpan;
-    const cellX = (containerWidth / gridCols) * cell.col;
-    const cellY = (containerHeight / gridRows) * cell.row;
 
-    return `left: ${cellX + 24}px; top: ${cellY + 24}px; width: ${cellW - 8}px; height: ${cellH - 8}px;`;
+    if (!cell) {
+      return "display: none;";
+    }
+
+    return getCellStyleFromLayout(cell, {
+      containerWidth,
+      containerHeight,
+      gridCols,
+      gridRows,
+    });
   }
 
-  let layout = $state(computeGrid());
+  let layout = $state(recomputeLayout());
 
   $effect(() => {
     if (typeof window !== "undefined") {
-      layout = computeGrid();
+      layout = recomputeLayout();
     }
   });
 </script>
@@ -466,7 +351,7 @@
       onclick={(e) => e.stopPropagation()}
     >
       <iframe
-        src="/2019-ECSE-Certificate-ekahau-Vladimir_Kolchurin.pdf"
+        src={EKAHUA_ECSE_CERTIFICATE_PATH}
         title="Ekahau ECSE Certificate"
       ></iframe>
     </div>

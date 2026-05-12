@@ -17,8 +17,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "test:e2e": "playwright test",
-    "test:e2e:headed": "playwright test --headed",
+    "test:e2e": "bash ./scripts/playwright-runner.sh test",
+    "test:e2e:headed": "bash ./scripts/playwright-runner.sh test --headed",
     "test:ci": "bun run format:check && bun run lint && bun run check && bun run test:coverage && bun run test:e2e"
   },
   "devDependencies": {

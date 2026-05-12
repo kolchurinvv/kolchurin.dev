@@ -1,9 +1,13 @@
 import { sveltekit } from "@sveltejs/kit/vite"
+import { fileURLToPath } from "node:url"
 import { defineConfig } from "vitest/config"
 
 export default defineConfig({
   plugins: [sveltekit()],
   resolve: {
+    alias: {
+      $test: fileURLToPath(new URL("./src/test", import.meta.url)),
+    },
     conditions: ["browser"],
   },
   server: { allowedHosts: [".ngrok-free.app"] },

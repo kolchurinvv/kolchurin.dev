@@ -2,6 +2,8 @@
   import { onMount } from "svelte";
   import Terminal from "$lib/components/Terminal.svelte";
   import { contact, skills, experience } from "$lib/profile";
+  import { EKAHUA_ECSE_CERTIFICATE_PATH } from "$lib/routes/certificates";
+  import { getMasonryColumnCount } from "$lib/routes/layout-logic";
 
   let showPdf = $state(false);
 
@@ -84,16 +86,7 @@
 
   onMount(() => {
     function updateColumns() {
-      const vw = window.innerWidth;
-      if (vw > 1800) {
-        columnCount = 4;
-      } else if (vw > 1400) {
-        columnCount = 3;
-      } else if (vw > 900) {
-        columnCount = 2;
-      } else {
-        columnCount = 1;
-      }
+      columnCount = getMasonryColumnCount(window.innerWidth);
     }
 
     updateColumns();
@@ -349,7 +342,7 @@
       onclick={(e) => e.stopPropagation()}
     >
       <iframe
-        src="/2019-ECSE-Certificate-ekahau-Vladimir_Kolchurin.pdf"
+        src={EKAHUA_ECSE_CERTIFICATE_PATH}
         title="Ekahau ECSE Certificate"
       ></iframe>
     </div>
