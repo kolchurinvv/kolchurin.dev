@@ -330,17 +330,13 @@
 {#if showPdf}
   <div
     class="pdf-modal"
-    onclick={closePdf}
+    onclick={(e) => e.currentTarget === e.target && closePdf()}
     onkeydown={(e) => e.key === "Escape" && closePdf()}
     role="dialog"
     aria-modal="true"
     tabindex="-1"
   >
-    <div
-      class="pdf-content"
-      role="document"
-      onclick={(e) => e.stopPropagation()}
-    >
+    <div class="pdf-content" role="document">
       <iframe
         src={EKAHUA_ECSE_CERTIFICATE_PATH}
         title="Ekahau ECSE Certificate"

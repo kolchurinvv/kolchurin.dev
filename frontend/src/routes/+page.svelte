@@ -247,14 +247,13 @@ function closePdf() {
   <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
   <div
     class="pdf-modal"
-    onclick={closePdf}
+    onclick={(e) => e.currentTarget === e.target && closePdf()}
     onkeydown={(e) => e.key === "Escape" && closePdf()}
     role="dialog"
     aria-modal="true"
     tabindex="-1"
   >
-    <!-- svelte-ignore a11y_no_static_element_interactions a11y_no_noninteractive_element_interactions -->
-    <div class="pdf-content" role="document" onclick={(e) => e.stopPropagation()}>
+    <div class="pdf-content" role="document">
       <!---
       <button type="button" class="pdf-close" onclick={closePdf} aria-label="Close">
         <i>close</i>
@@ -956,28 +955,6 @@ function closePdf() {
   width: 100%;
   height: 100%;
   border: none;
-}
-
-.pdf-close {
-  position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  z-index: 10;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border);
-  color: var(--text-primary);
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.pdf-close:hover {
-  border-color: var(--accent);
-  color: var(--accent);
 }
 
 .cert-badge {
