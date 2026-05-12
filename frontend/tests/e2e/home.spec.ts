@@ -8,10 +8,22 @@ test.describe("home page", () => {
     await expect(page.getByRole("heading", { name: "Technical Skills" })).toBeVisible()
 
     const themeToggle = page.getByRole("button", { name: "Toggle theme" })
+
+    const getMode = () =>
+      page.evaluate(() => {
+        if (document.body.classList.contains("light")) return "light"
+        if (document.body.classList.contains("dark")) return "dark"
+        return "none"
+      })
+
+    await expect.poll(getMode, { message: "theme should be initialized on body" }).not.toBe("none")
+
+    const initialMode = await getMode()
     await themeToggle.click()
 
-    await expect(page.locator("body")).toHaveClass(/light/)
-    expect(await page.evaluate(() => localStorage.getItem("mode"))).toBe("light")
+    const expectedMode = initialMode === "dark" ? "light" : "dark"
+    await expect.poll(getMode).toBe(expectedMode)
+    expect(await page.evaluate(() => localStorage.getItem("mode"))).toBe(expectedMode)
 
     await page.getByRole("button", { name: /Ekahau ECSE Design/i }).click()
     await expect(page.getByRole("dialog")).toBeVisible()
@@ -36,6 +48,6 @@ test.describe("home page", () => {
     await terminalInput.fill("cat skills.json")
     await terminalInput.press("Enter")
 
-    await expect(page.getByText("Backend & Databases")).toBeVisible()
+    await expect(page.getByRole("heading", { name: "Backend & Databases" })).toBeVisible()
   })
 })

@@ -4,6 +4,9 @@ import { defineConfig } from "vitest/config"
 export default defineConfig({
   plugins: [sveltekit()],
   resolve: {
+    alias: {
+      $test: new URL("./src/test", import.meta.url).pathname,
+    },
     conditions: ["browser"],
   },
   server: { allowedHosts: [".ngrok-free.app"] },

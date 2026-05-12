@@ -2,48 +2,32 @@
   import "../app.css";
   import { onMount } from "svelte";
   import { page } from "$app/state";
+  import {
+    initializeTheme,
+    toggleTheme,
+    type ThemeMode,
+  } from "$lib/theme/theme-logic";
 
   let { children } = $props();
 
-  let themeMode = $state<"light" | "dark">("dark");
-  let themeBtn: HTMLButtonElement;
+  let themeMode = $state<ThemeMode>("dark");
 
-  const getUI = () =>
-    (window as unknown as { ui: (action: string, value?: string) => string })
-      .ui;
+  function getThemeEnv() {
+    const ui = (window as unknown as { ui: (action: string, value?: string) => string }).ui;
 
-  onMount(() => {
-    const ui = getUI();
-    const savedMode = localStorage.getItem("mode") as "light" | "dark" | null;
-    if (savedMode) {
-      themeMode = savedMode;
-      ui("mode", savedMode);
-      document.body.classList.add(savedMode);
-    } else {
-      ui("mode", "auto");
-      themeMode = (ui("mode") as "light" | "dark") || "dark";
-      document.body.classList.add(themeMode);
-    }
-    updateBtnIcon();
-  });
-
-  function toggleTheme() {
-    const ui = getUI();
-    const newMode = themeMode === "dark" ? "light" : "dark";
-    ui("mode", newMode);
-    document.body.classList.remove(themeMode);
-    document.body.classList.add(newMode);
-    localStorage.setItem("mode", newMode);
-    themeMode = newMode;
-    updateBtnIcon();
+    return {
+      ui,
+      storage: localStorage,
+      bodyClassList: document.body.classList,
+    };
   }
 
-  function updateBtnIcon() {
-    if (themeBtn) {
-      const icon = themeBtn.querySelector("i");
-      if (icon)
-        icon.textContent = themeMode === "dark" ? "light_mode" : "dark_mode";
-    }
+  onMount(() => {
+    themeMode = initializeTheme(getThemeEnv());
+  });
+
+  function onThemeToggle() {
+    themeMode = toggleTheme(getThemeEnv(), themeMode);
   }
 </script>
 
@@ -83,10 +67,9 @@
     <i>apps</i>
   </a>
   <button
-    bind:this={themeBtn}
     type="button"
     class="theme-toggle nav-link"
-    onclick={toggleTheme}
+    onclick={onThemeToggle}
     aria-label="Toggle theme"
   >
     <i>{themeMode === "dark" ? "light_mode" : "dark_mode"}</i>
