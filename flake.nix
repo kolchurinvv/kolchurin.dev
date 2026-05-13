@@ -21,25 +21,20 @@
             bun
             vitejs
             nodejs_25 # needed for nvim plugins
+            playwright-driver
 
+            buf
             protobuf
             protoc-gen-go
             protoc-gen-go-grpc
 
-            chromium
           ];
 
           shellHook = ''
-            # Use system Chromium from nixpkgs instead of Playwright-managed browsers.
-            export PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH="${pkgs.chromium}/bin/chromium"
-            export PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS="true"
-            export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD="1"
-
-            # Some Nix shells inject Playwright driver/browser paths that can mismatch
-            # the @playwright/test version from package.json and break browser launch.
-            unset PLAYWRIGHT_BROWSERS_PATH
-            unset PLAYWRIGHT_DRIVER_PATH
-            unset PLAYWRIGHT_NODEJS_PATH
+            export PLAYWRIGHT_NODEJS_PATH="${pkgs.nodejs_25}/bin/node"
+            export PLAYWRIGHT_DRIVER_PATH="${pkgs.playwright-driver}/cli.js"
+            export PLAYWRIGHT_BROWSERS_PATH="${pkgs.playwright-driver.browsers}"
+            export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
           '';
         };
       });

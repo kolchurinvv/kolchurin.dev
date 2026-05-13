@@ -66,6 +66,20 @@
   >
     <i>apps</i>
   </a>
+  <a
+    href="/grid-v3"
+    class="nav-link"
+    class:active={page.url.pathname === "/grid-v3"}
+  >
+    <i>dashboard_customize</i>
+  </a>
+  <a
+    href="/grid-v4"
+    class="nav-link"
+    class:active={page.url.pathname === "/grid-v4"}
+  >
+    <i>view_comfy</i>
+  </a>
   <button
     type="button"
     class="theme-toggle nav-link"

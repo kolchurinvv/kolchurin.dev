@@ -924,9 +924,9 @@
     border: none;
   }
 
-  @media (max-width: 900px) {
+  @media (max-width: 1200px) {
     .grid-container {
-      padding: 0.5rem;
+      padding: 0.75rem;
     }
 
     .grid-cell {
@@ -935,7 +935,7 @@
       height: auto !important;
       left: auto !important;
       top: auto !important;
-      margin-bottom: 0.5rem;
+      margin-bottom: 0.75rem;
       max-height: none;
     }
 

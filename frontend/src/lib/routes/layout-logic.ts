@@ -46,88 +46,134 @@ export function resolveGridMetrics(
   };
 }
 
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+function getPriorityScore(priority: number, minPriority: number, maxPriority: number): number {
+  if (maxPriority === minPriority) {
+    return 1;
+  }
+
+  return clamp((priority - minPriority) / (maxPriority - minPriority), 0, 1);
+}
+
+function getSpanCandidates(
+  score: number,
+  gridCols: number,
+  gridRows: number,
+): Array<{ colSpan: number; rowSpan: number }> {
+  const candidates: Array<{ colSpan: number; rowSpan: number }> = [];
+
+  if (score >= 0.75) {
+    candidates.push({ colSpan: 2, rowSpan: 2 });
+    candidates.push({ colSpan: 2, rowSpan: 1 });
+    candidates.push({ colSpan: 1, rowSpan: 2 });
+  } else if (score >= 0.45) {
+    candidates.push({ colSpan: 2, rowSpan: 1 });
+    candidates.push({ colSpan: 1, rowSpan: 2 });
+  }
+
+  candidates.push({ colSpan: 1, rowSpan: 1 });
+
+  return candidates.filter((candidate) => {
+    return candidate.colSpan <= gridCols && candidate.rowSpan <= gridRows;
+  });
+}
+
 export function computePriorityLayout<T extends PrioritySection>(
   sections: T[],
   gridCols: number,
   gridRows: number,
 ): LayoutCell[] {
-  const centerCol = gridCols >= 3 ? 1 : 0;
-  const centerRow = gridRows >= 3 ? 1 : 0;
-
-  const newLayout: LayoutCell[] = [];
+  const layout: LayoutCell[] = new Array(sections.length);
   const usedCells = new Set<string>();
 
-  for (const section of sections) {
+  const maxPriority = Math.max(...sections.map((section) => section.priority));
+  const minPriority = Math.min(...sections.map((section) => section.priority));
+
+  const centerCol = (gridCols - 1) / 2;
+  const centerRow = (gridRows - 1) / 2;
+
+  const allPositions: Array<{ col: number; row: number; distance: number }> = [];
+
+  for (let row = 0; row < gridRows; row++) {
+    for (let col = 0; col < gridCols; col++) {
+      allPositions.push({
+        col,
+        row,
+        distance: Math.abs(col - centerCol) + Math.abs(row - centerRow),
+      });
+    }
+  }
+
+  const sortedSections = sections
+    .map((section, index) => ({ section, index }))
+    .sort((a, b) => b.section.priority - a.section.priority);
+
+  for (let sortedIndex = 0; sortedIndex < sortedSections.length; sortedIndex++) {
+    const { section, index } = sortedSections[sortedIndex];
+    const score = getPriorityScore(section.priority, minPriority, maxPriority);
+    const spanCandidates = getSpanCandidates(score, gridCols, gridRows);
+
+    const preferCenter = score >= 0.4;
+    const sortedPositions = [...allPositions].sort((a, b) => {
+      return preferCenter ? a.distance - b.distance : b.distance - a.distance;
+    });
+
     let placed = false;
 
-    const preferCenter = section.priority >= 5;
-    const wantsLargeSpan = section.priority >= 3;
+    for (const position of sortedPositions) {
+      for (const span of spanCandidates) {
+        if (
+          position.col + span.colSpan > gridCols ||
+          position.row + span.rowSpan > gridRows
+        ) {
+          continue;
+        }
 
-    const positions: { col: number; row: number }[] = [];
+        const totalCells = gridCols * gridRows;
+        const remainingSections = sortedSections.length - sortedIndex;
+        const reservedCellsForRemainingSections = remainingSections - 1;
+        const availableCells = totalCells - usedCells.size;
+        const requestedCells = span.colSpan * span.rowSpan;
 
-    if (preferCenter) {
-      positions.push({ col: centerCol, row: centerRow });
-    }
+        if (requestedCells > availableCells - reservedCellsForRemainingSections) {
+          continue;
+        }
 
-    if (section.priority <= 2) {
-      for (let row = 0; row < gridRows; row++) {
-        for (let col = 0; col < gridCols; col++) {
-          const isCorner =
-            (row === 0 || row === gridRows - 1) &&
-            (col === 0 || col === gridCols - 1);
+        let canFit = true;
 
-          if (isCorner) {
-            positions.unshift({ col, row });
+        for (let dy = 0; dy < span.rowSpan && canFit; dy++) {
+          for (let dx = 0; dx < span.colSpan && canFit; dx++) {
+            if (usedCells.has(`${position.col + dx},${position.row + dy}`)) {
+              canFit = false;
+            }
           }
         }
-      }
-    }
 
-    for (let row = 0; row < gridRows; row++) {
-      for (let col = 0; col < gridCols; col++) {
-        if (!positions.some((position) => position.col === col && position.row === row)) {
-          positions.push({ col, row });
+        if (!canFit) {
+          continue;
         }
-      }
-    }
 
-    for (const position of positions) {
-      let spanW = wantsLargeSpan ? (section.priority >= 5 ? 2 : 1) : 1;
-      let spanH = wantsLargeSpan && section.priority >= 5 ? 2 : 1;
-
-      if (position.col + spanW > gridCols) {
-        spanW = 1;
-      }
-
-      if (position.row + spanH > gridRows) {
-        spanH = 1;
-      }
-
-      let canFit = true;
-
-      for (let dy = 0; dy < spanH && canFit; dy++) {
-        for (let dx = 0; dx < spanW && canFit; dx++) {
-          if (usedCells.has(`${position.col + dx},${position.row + dy}`)) {
-            canFit = false;
-          }
-        }
-      }
-
-      if (canFit) {
-        newLayout.push({
+        layout[index] = {
           col: position.col,
           row: position.row,
-          colSpan: spanW,
-          rowSpan: spanH,
-        });
+          colSpan: span.colSpan,
+          rowSpan: span.rowSpan,
+        };
 
-        for (let dy = 0; dy < spanH; dy++) {
-          for (let dx = 0; dx < spanW; dx++) {
+        for (let dy = 0; dy < span.rowSpan; dy++) {
+          for (let dx = 0; dx < span.colSpan; dx++) {
             usedCells.add(`${position.col + dx},${position.row + dy}`);
           }
         }
 
         placed = true;
+        break;
+      }
+
+      if (placed) {
         break;
       }
     }
@@ -136,7 +182,7 @@ export function computePriorityLayout<T extends PrioritySection>(
       for (let row = 0; row < gridRows && !placed; row++) {
         for (let col = 0; col < gridCols && !placed; col++) {
           if (!usedCells.has(`${col},${row}`)) {
-            newLayout.push({ col, row, colSpan: 1, rowSpan: 1 });
+            layout[index] = { col, row, colSpan: 1, rowSpan: 1 };
             usedCells.add(`${col},${row}`);
             placed = true;
           }
@@ -145,7 +191,7 @@ export function computePriorityLayout<T extends PrioritySection>(
     }
   }
 
-  return newLayout;
+  return layout;
 }
 
 export function getCellStyleFromLayout(
@@ -165,13 +211,88 @@ export function getMasonryColumnCount(viewportWidth: number): number {
     return 4;
   }
 
-  if (viewportWidth > 1400) {
+  if (viewportWidth > 1450) {
     return 3;
   }
 
-  if (viewportWidth > 900) {
+  if (viewportWidth > 1100) {
     return 2;
   }
 
   return 1;
+}
+
+export interface FluidGridConfig {
+  baseColumns: number;
+  priorityToColSpan: Map<number, number>;
+  priorityToRowSpan: Map<number, number>;
+}
+
+export interface FluidLayoutItem {
+  id: string;
+  priority: number;
+  colSpan: number;
+  rowSpan: number;
+  order: number;
+}
+
+export function computeFluidLayout<T extends PrioritySection>(
+  sections: T[],
+  viewportWidth: number,
+): FluidLayoutItem[] {
+  const vw = viewportWidth || 1920;
+
+  let baseCols: number;
+  if (vw > 1600) {
+    baseCols = 5;
+  } else if (vw > 1200) {
+    baseCols = 4;
+  } else if (vw > 800) {
+    baseCols = 3;
+  } else {
+    baseCols = 2;
+  }
+
+  const maxPriority = Math.max(...sections.map((s) => s.priority));
+  const minPriority = Math.min(...sections.map((s) => s.priority));
+  const range = maxPriority - minPriority || 1;
+
+  const sorted = [...sections]
+    .map((s, i) => ({ ...s, originalIndex: i }))
+    .sort((a, b) => b.priority - a.priority);
+
+  return sorted.map((section, sortedIndex) => {
+    const normalizedPriority = (section.priority - minPriority) / range;
+
+    let colSpan: number;
+    let rowSpan: number;
+
+    if (normalizedPriority >= 0.8) {
+      colSpan = Math.min(3, baseCols);
+      rowSpan = 3;
+    } else if (normalizedPriority >= 0.5) {
+      colSpan = Math.min(2, Math.floor(baseCols / 2) + 1);
+      rowSpan = 2;
+    } else if (normalizedPriority >= 0.2) {
+      colSpan = Math.min(2, Math.floor(baseCols / 2));
+      rowSpan = 2;
+    } else {
+      colSpan = 1;
+      rowSpan = 1;
+    }
+
+    const remainingSlots = baseCols - (colSpan - 1);
+    if (remainingSlots < 2 && sortedIndex < sorted.length - 1) {
+      colSpan = 1;
+      rowSpan = 1;
+    }
+
+    return {
+      id: section.id,
+      priority: section.priority,
+      colSpan,
+      rowSpan,
+      order: sortedIndex,
+    };
+  });
 }

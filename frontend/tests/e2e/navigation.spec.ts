@@ -13,5 +13,10 @@ test.describe("layout navigation", () => {
     await expect(page).toHaveURL(/\/grid-v2$/)
     await expect(page.getByRole("heading", { name: "Technical Skills" })).toBeVisible()
     await expect(page.locator('a[href="/grid-v2"]')).toHaveClass(/active/)
+
+    await page.locator('a[href="/grid-v3"]').click()
+    await expect(page).toHaveURL(/\/grid-v3$/)
+    await expect(page.getByRole("heading", { name: "Experience" })).toBeVisible()
+    await expect(page.locator('a[href="/grid-v3"]')).toHaveClass(/active/)
   })
 })
