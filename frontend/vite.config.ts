@@ -9,7 +9,7 @@ export default defineConfig({
     },
     conditions: ["browser"],
   },
-  server: { allowedHosts: [".ngrok-free.app"] },
+  server: { allowedHosts: ["kolchurin.dev"] },
   test: {
     environment: "jsdom",
     setupFiles: ["./vitest.setup.ts"],
