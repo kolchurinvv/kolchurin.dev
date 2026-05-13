@@ -30,76 +30,76 @@ Personal website project for a developer transitioning from frontend to backend,
 
 ## Build Commands
 
-### Frontend (Bun)
+Use `just` recipes from project root as the default interface for local tasks.
+
+### Frontend
 
 ```bash
-cd frontend
-
 # Install dependencies
-bun install
+just frontend-deps
 
 # Development server
-bun run dev
+just frontend-dev
 
 # Build for production
-bun run build
-
-# Preview production build
-bun run preview
+just frontend-build
 
 # Type checking
-bun run check
+just frontend-check
 
-# Biome lint + format
-bun run lint      # Check linting
-bun run format    # Format code
-bun run format:check  # Check formatting without fixing
+# Lint + format
+just frontend-lint
+just frontend-format
+just frontend-format-check
+
+# Unit/component tests
+just frontend-test
+
+# End-to-end tests
+just frontend-test-e2e
 ```
 
-### Backend (Go)
+### Backend
 
 ```bash
-cd backend
-
 # Install dependencies
-go mod download
-
-# Generate protobuf code
-make generate
+just backend-deps
 
 # Run development server
-make run
+just backend-run
 
 # Build binary
-make build
+just backend-build
 
-# Run tests
-go test ./...
-
-# Run tests with coverage
-go test -cover ./...
-
-# Run single test
-go test ./internal/api/... -run TestServiceName -v
-
-# Lint
-golangci-lint run
-
-# Format code
-go fmt ./...
+# Tests
+just backend-test
+just backend-test-cover
 ```
 
 ### Protocol Buffers
 
 ```bash
-# Generate all protobuf code (from project root)
-make generate
+# Generate all protobuf code (Go + TypeScript)
+just generate
 
-# Generate specifically for Go
-cd proto && protoc --go_out=../backend --go-grpc_out=../backend *.proto
+# Generate only Go stubs
+just generate-go
 
-# Generate specifically for TypeScript
-cd proto && protoc --ts_out=../frontend/src/rpc *.proto
+# Generate only TypeScript stubs (buf)
+just generate-ts
+```
+
+### Consolidated Tasks
+
+```bash
+# Install tools + all dependencies
+just install
+
+# Fast suite (backend + frontend unit tests)
+just test
+
+# Full suite (backend + frontend unit + frontend e2e)
+just test-all
 ```
 
 ---
@@ -228,17 +228,15 @@ service BlogService {
 
 ### Frontend
 ```bash
-bun run test          # Run all tests
-bun run test:watch    # Watch mode
-bun test src/lib/utils.test.ts -w  # Single file watch mode
+just frontend-test         # Run unit/component tests
+just frontend-test-e2e     # Run end-to-end tests
+just frontend-test-all     # Run unit/component + e2e
 ```
 
 ### Backend
 ```bash
-go test ./...              # All tests
-go test -v ./internal/api/...  # Verbose output
-go test -run ^TestName$ ./...  # Run specific test by name
-go test -cover ./...       # With coverage report
+just backend-test          # All backend tests
+just backend-test-cover    # Backend tests with coverage
 ```
 
 ### Test Naming
@@ -253,9 +251,9 @@ TestBlogController_CreatePost_Unauthorized
 - **Agents must keep all tests green after every edit.**
 - A task is **not complete** if any relevant test suite fails.
 - At minimum, agents must run the relevant suites for touched code before handing off:
-  - Frontend changes: `bun run test` and `bun run test:e2e`
-  - Backend changes: `go test ./...`
-  - Cross-cutting changes: run both frontend and backend suites
+  - Frontend changes: `just frontend-test` and `just frontend-test-e2e`
+  - Backend changes: `just backend-test`
+  - Cross-cutting changes: run both frontend and backend suites (`just test-all`)
 
 ### New Feature Testing Requirement (Strict)
 
@@ -275,7 +273,7 @@ Biome is configured via `frontend/biome.json`. Default rules:
 - Semicolons: required
 - Quote style: double quotes
 
-Run `bun run format` before committing. CI enforces formatting checks.
+Run `just frontend-format` before committing. CI enforces formatting checks.
 
 Biome v2 configuration uses `assist` section for organize imports:
 ```json
