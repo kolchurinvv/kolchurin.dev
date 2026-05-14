@@ -102,7 +102,7 @@ jobs:
     needs: frontend-quality
     environment:
       name: production
-      url: https://your-app.com # This makes the "View Deployment" button work!
+      url: https://kolchurin.dev
     permissions:
       contents: read
       packages: write
