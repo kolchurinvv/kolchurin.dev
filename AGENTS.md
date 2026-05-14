@@ -319,6 +319,26 @@ Biome v2 configuration uses `assist` section for organize imports:
 - If the user asks to "save" or "commit" work, create the commit locally and ask if they want to push
 - Always ask before committing, even if the user seems to want changes committed
 
+### PR/Branch Workflow Safety (MANDATORY)
+
+Before creating branches, pushing, or opening a PR, agents MUST detect repo mode:
+
+```bash
+git worktree list | grep -Fq "$(pwd)" && echo "worktree" || echo "conventional"
+```
+
+If mode is **worktree**:
+- **Use the existing worktree branch only** (the branch already checked out in that worktree)
+- **DO NOT run `git checkout -b`** or create additional topic branches inside that worktree
+- Push/update the existing branch and open PR from that same branch
+
+If mode is **conventional**:
+- Create/use a normal topic branch per naming rules
+
+### Universal Agent Compliance (MANDATORY)
+
+These PR/branch rules apply to **all agents and harnesses** used in this repository (including Pi, Claude, OpenCode, or any other sub-agent/tooling wrapper). No exceptions.
+
 **Branch Naming**
 ```
 feature/add-blog-posts
@@ -359,12 +379,14 @@ The `.gitconfig-agent` file at project root holds the agent identity as fallback
 
 ### Branch Naming (AI Agent)
 
-Prefix AI agent branches with `ai/`:
+For **conventional repos only**, prefix AI agent branches with `ai/`:
 ```
 ai/feature/add-blog-posts
 ai/fix/memory-leak
 ai/chore/update-deps
 ```
+
+For **worktree repos**, do not create a new branch; use the existing worktree branch.
 
 ### Pull Request Creation (AI Agent)
 

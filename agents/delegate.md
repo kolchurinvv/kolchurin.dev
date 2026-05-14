@@ -60,22 +60,22 @@ git -c user.name="AI Agent (kolchurin.dev)" -c user.email="ai+agent@kolchurin.de
 
 ### 4. Branch Naming
 
+**Mandatory preflight (run before any branch/push/PR action):**
+```bash
+git worktree list | grep -Fq "$(pwd)" && echo "worktree" || echo "conventional"
+```
+
 **For conventional repos**: Prefix with `ai/`:
 - `ai/feature/<description>`
 - `ai/fix/<description>`
 - `ai/chore/<description>`
 
-**For worktree repos** (MUST detect first):
-```bash
-# Detect if using worktrees
-git worktree list | grep -q "$(pwd)" && echo "worktree" || echo "conventional"
-```
-
-If worktree:
-- Use existing worktree's branch (don't create new branches)
-- Branch name = worktree directory name (e.g., `gh-pr-pipeline`, `in-dev-warning`)
-- Push to existing remote branch or create new one on origin with same name
-- NEVER use `git checkout -b` to create new branches inside a worktree
+**For worktree repos**:
+- Use existing worktree's checked-out branch only
+- NEVER use `git checkout -b` in that worktree
+- Do not rename/swap branches inside the worktree
+- Push commits to that existing branch and open/update PR from it
+- If branch strategy unclear, stop and ask for user direction before pushing
 
 ### 5. Pull Request Rules
 
@@ -110,6 +110,10 @@ Task NOT complete if tests fail.
 - If fetch fails, warn and use local config
 - If tests fail, report failure to main agent
 - Never push without explicit permission
+
+## Runtime Applicability
+
+These rules are mandatory regardless of agent runtime/harness (Pi, Claude, OpenCode, or other wrappers/sub-agents).
 
 ## Dependencies
 
