@@ -20,6 +20,11 @@ When the main agent delegates to a sub-agent, it should:
 1. Fetch latest agent config from main: `git fetch origin main && git show main:agents/<agent>.md`
 2. Load the agent's instructions
 3. Execute the task following the agent's conventions
+4. Enforce PR policy checks before handoff:
+   - worktree detection and correct branch/worktree usage
+   - required PR title/body/label format
+   - `gh pr create --body-file` usage (no inline markdown body)
+   - post-create `gh pr view` verification
 
 ## Updating
 
