@@ -5,6 +5,9 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+concurrency: 
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   REGISTRY: ghcr.io
@@ -80,18 +83,35 @@ jobs:
         run: |
           echo "${{ env.GH_TOKEN }}" | podman login ${{ env.REGISTRY }} \
             -u ${{ github.actor }} --password-stdin
+      - name: Build and Push
+        run: |
+          # 1. Define variables based on the environment
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            # PREVIEW ENVIRONMENT
+            TAG="preview-${{ github.head_ref }}"
+            WEBHOOK_URL="${{ secrets.PREVIEW_WEBHOOK_URL }}"
+            echo "Running in Preview mode: $TAG"
+          else
+            # PRODUCTION ENVIRONMENT
+            TAG="latest"
+            WEBHOOK_URL="${{ secrets.PRODUCTION_WEBHOOK_URL }}"
+            echo "Running in Production mode: $TAG"
+          fi
+
+          # 2. Build the image using podman
+          # Using the tag we defined above
 
       - name: Build frontend image
         run: |
           podman build -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ github.sha }} \
             -f ./deployment/Dockerfile.frontend ./frontend
 
-      - name: Tag for latest
+      - name: Tag for image
         run: |
           podman tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ github.sha }} \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:$$TAG
 
-      - name: Push image
+      - name: Push prod image
         if: github.event_name != 'pull_request'
         run: |
           podman push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ github.sha }}
@@ -100,4 +120,4 @@ jobs:
       - name: Trigger Dokploy deployment
         if: github.event_name != 'pull_request'
         run: |
-          curl -X POST https://app.dokploy.com/api/deploy/Vens-HPNsRwp2MSDkqEWp
+          curl -X POST $WEBHOOK_URL

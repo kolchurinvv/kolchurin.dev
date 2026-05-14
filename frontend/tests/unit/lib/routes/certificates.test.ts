@@ -17,7 +17,7 @@ describe("certificates", () => {
     observer?.trigger(section, true)
 
     const preload = document.head.querySelector(
-      `link[rel=\"preload\"][href=\"${EKAHUA_ECSE_CERTIFICATE_PATH}\"]`
+      `link[rel="preload"][href="${EKAHUA_ECSE_CERTIFICATE_PATH}"]`
     )
     expect(preload).not.toBeNull()
 
