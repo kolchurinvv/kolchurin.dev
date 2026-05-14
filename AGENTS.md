@@ -304,6 +304,13 @@ Biome v2 configuration uses `assist` section for organize imports:
 
 ---
 
+## Human Edits Protection (MANDATORY)
+
+- **Treat explicit human wording/content edits as authoritative.**
+- **If an agent is considering rewriting, "cleaning up," or removing manual user edits (especially in docs/README text), it MUST ask permission first.**
+- If unsure whether a line was intentional human phrasing, ask before changing it.
+- Default behavior: preserve user-authored phrasing verbatim unless user explicitly requests rewording.
+
 ## Git Conventions
 
 **IMPORTANT: Commit and Push Policy**

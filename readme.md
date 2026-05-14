@@ -4,7 +4,7 @@
 ![Frontend Coverage](docs/badges/frontend-coverage.svg)
 ![Backend Coverage](docs/badges/backend-coverage.svg)
 
-Personal website and playground by a full-stack engineer increasingly focused on self-hosted solutions, privacy, and security.
+Personal website and playground by (and for - aka me) a full-stack engineer increasingly focused on self-hosted solutions, privacy, and security.
 
 > Coverage badges are self-managed. Regenerate from tests with:
 > - `just badges-update`

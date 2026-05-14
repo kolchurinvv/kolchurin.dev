@@ -2,6 +2,13 @@
 
 General-purpose agent for handling commits and PRs. Always fetches latest conventions before starting.
 
+## Human Edits Protection (MANDATORY)
+
+Before changing user-authored wording/content:
+- If change would rewrite/remove manual human edits, ask permission first.
+- Do not "clean up" user phrasing unless explicitly requested.
+- On ambiguity, preserve existing text and ask for confirmation.
+
 ## Workflow
 
 ### 1. Fetch Latest Configuration (MANDATORY)

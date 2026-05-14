@@ -14,6 +14,14 @@ Main agent uses these as "delegated-to" entities. Each sub-agent:
 |-------|---------|
 | [delegate.md](delegate.md) | General-purpose delegate that fetches latest conventions and handles commits/PRs |
 
+## Human Edits Protection (MANDATORY)
+
+All sub-agents must preserve explicit human-authored edits.
+
+- If a sub-agent is about to rewrite/remove manual wording (for example README phrasing), it must ask for permission first.
+- "Polishing" or stylistic cleanup is not allowed on user-authored text without explicit approval.
+- When uncertain, preserve text and escalate/question instead of modifying.
+
 ## How to Use
 
 When the main agent delegates to a sub-agent, it should:
