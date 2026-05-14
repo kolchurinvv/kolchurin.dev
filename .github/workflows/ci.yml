@@ -100,34 +100,24 @@ jobs:
 
           # 2. Build the image using podman
           # Using the tag we defined above
-          podman build -t ghcr.io/username/repo:$TAG .
 
-          # 3. Push the image
-          podman push ghcr.io/username/repo:$TAG
+      - name: Build frontend image
+        run: |
+          podman build -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ github.sha }} \
+            -f ./deployment/Dockerfile.frontend ./frontend
 
-          # 4. Trigger the specific webhook for that environment
-          # We pass the tag so the server knows which image to pull
-          curl -X POST -H "Content-Type: application/json" \
-               -d "{\"tag\": \"$TAG\", \"commit\": \"${{ github.sha }}\"}" \
-               $WEBHOOK_URL
+      - name: Tag for image
+        run: |
+          podman tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ github.sha }} \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:$TAG
 
-      # - name: Build frontend image
-      #   run: |
-      #     podman build -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ github.sha }} \
-      #       -f ./deployment/Dockerfile.frontend ./frontend
-      #
-      # - name: Tag for latest
-      #   run: |
-      #     podman tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ github.sha }} \
-      #       ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:latest
-      #
-      # - name: Push image
-      #   if: github.event_name != 'pull_request'
-      #   run: |
-      #     podman push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ github.sha }}
-      #     podman push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:latest
-      #
-      # - name: Trigger Dokploy deployment
-      #   if: github.event_name != 'pull_request'
-      #   run: |
-      #     curl -X POST https://app.dokploy.com/api/deploy/YIUS7MXt-JDLs2DShE-D4
+      - name: Push image
+        if: github.event_name != 'pull_request'
+        run: |
+          podman push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ github.sha }}
+          podman push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:latest
+
+      - name: Trigger Dokploy deployment
+        if: github.event_name != 'pull_request'
+        run: |
+          curl -X POST $WEBHOOK_URL

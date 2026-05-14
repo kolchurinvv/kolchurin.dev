@@ -1,9 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect } from "vitest"
-// biome-ignore lint/style/useNodejsImportProtocol: <reason>
-import { readFileSync } from "fs"
-// biome-ignore lint/style/useNodejsImportProtocol: <reason>
-import { resolve } from "path"
+import { readFileSync } from "node:fs"
+import { resolve } from "node:path"
 
 describe("Favicon", () => {
   it("should have a favicon link in app.html", () => {
