@@ -109,9 +109,9 @@ jobs:
       - name: Tag for image
         run: |
           podman tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ github.sha }} \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:$TAG
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ TAG }} 
 
-      - name: Push image
+      - name: Push Prod Image
         if: github.event_name != 'pull_request'
         run: |
           podman push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ github.sha }}
