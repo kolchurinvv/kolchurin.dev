@@ -352,6 +352,8 @@ The `.gitconfig-agent` file at project root holds the agent identity as fallback
 
 ### Branch Naming (AI Agent)
 
+#### Conventional repo (no worktree)
+
 Prefix AI agent branches with `ai/`:
 ```
 ai/feature/add-blog-posts
@@ -359,27 +361,74 @@ ai/fix/memory-leak
 ai/chore/update-deps
 ```
 
-### Pull Request Creation (AI Agent)
+#### Worktree repo (MANDATORY override)
 
-When creating PRs, agents must watermark them:
+Detect first:
+```bash
+git worktree list | grep -q "$(pwd)" && echo "worktree" || echo "conventional"
+```
 
-1. **PR body watermark** — append at the end:
+If output is `worktree`, agents MUST:
+- use the branch already attached to the current worktree
+- keep branch name equal to worktree directory name
+- NEVER run `git checkout -b` inside that worktree
+- if a new PR branch is needed, create a new worktree from `main`:
+  ```bash
+  git worktree add ../<branch-name> -b <branch-name> main
+  ```
+
+### Pull Request Creation (AI Agent, MANDATORY)
+
+All AI-created PRs must satisfy ALL rules below.
+
+1. **PR title prefix** — must start with `ai: `
+   ```
+   ai: feat(terminal): add route navigation
+   ai: fix: resolve memory leak
+   ```
+
+2. **PR body watermark** — append at the end:
    ```
    ---
    🤖 Watermark: ai-generated
    Signed-off-by: AI Agent <ai+agent@kolchurin.dev>
    ```
 
-2. **Label** — if `ai-generated` label exists, add it:
+3. **Label** — if `ai-generated` label exists, add it:
    ```bash
    gh pr edit <number> --add-label "ai-generated"
    ```
 
-3. **PR title prefix** — prefix with `ai: `:
+4. **Use `--body-file`, never inline markdown with backticks**
+
+   This avoids shell command substitution corrupting PR bodies.
+
+   Required pattern:
+   ```bash
+   cat > /tmp/pr-body.md <<'EOF'
+   ## Summary
+   - ...
+
+   ## Validation
+   - `just frontend-test`
+   - `just frontend-test-e2e`
+
+   ---
+   🤖 Watermark: ai-generated
+   Signed-off-by: AI Agent <ai+agent@kolchurin.dev>
+   EOF
+
+   gh pr create --base main --head <branch> \
+     --title "ai: <type>: <summary>" \
+     --body-file /tmp/pr-body.md
    ```
-   ai: feat(terminal): add route navigation
-   ai: fix: resolve memory leak
+
+5. **Post-create verification**
+   ```bash
+   gh pr view <number> --json title,body,headRefName,baseRefName,url
    ```
+
+If any rule is missed, close and recreate the PR correctly.
 
 ### Finding AI PRs
 
