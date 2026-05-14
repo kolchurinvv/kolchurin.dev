@@ -1,6 +1,13 @@
 # kolchurin.dev
 
-Personal website project for a developer transitioning from frontend to backend.
+[![CI](https://github.com/kolchurinvv/kolchurin.dev/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/kolchurinvv/kolchurin.dev/actions/workflows/ci.yml)
+![Frontend Coverage](docs/badges/frontend-coverage.svg)
+![Backend Coverage](docs/badges/backend-coverage.svg)
+
+Personal website and playground by a full-stack engineer increasingly focused on self-hosted solutions, privacy, and security.
+
+> Coverage badges are self-managed. Regenerate from tests with:
+> - `just badges-update`
 
 ## Tech Stack
 - **Frontend**: SvelteKit (TypeScript, Bun)
@@ -11,5 +18,3 @@ Personal website project for a developer transitioning from frontend to backend.
 - `frontend/`: SvelteKit application
 - `backend/`: Go gRPC server
 - `proto/`: Protocol Buffer definitions
-
-let's try auto-deploying
