@@ -1,42 +1,95 @@
-# sv
+# frontend
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+SvelteKit frontend for **kolchurin.dev**.
 
-## Creating a project
+This app renders the portfolio UI and includes unit/component tests (Vitest) and end-to-end tests (Playwright).
 
-If you're seeing this, you've probably already done this step. Congrats!
+## Stack
 
-```sh
-# create a new project
-npx sv create my-app
+- SvelteKit 2
+- Svelte 5
+- TypeScript
+- Bun
+- Biome (lint/format)
+- Vitest + Testing Library
+- Playwright
+
+## Prerequisites
+
+From repo root, install all dependencies with:
+
+```bash
+just install
 ```
 
-To recreate this project with the same configuration:
+Or install frontend deps only:
 
-```sh
-# recreate this project
-bun x sv@0.14.0 create --template minimal --types ts --install bun frontend
+```bash
+just frontend-deps
 ```
 
-## Developing
+## Development
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+Run from repo root:
 
-```sh
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
+```bash
+just frontend-dev
 ```
 
-## Building
+Default dev URL: `http://localhost:5173`
 
-To create a production version of your app:
+## Build
 
-```sh
-npm run build
+```bash
+just frontend-build
 ```
 
-You can preview the production build with `npm run preview`.
+## Quality checks
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+```bash
+just frontend-check
+just frontend-lint
+just frontend-format
+just frontend-format-check
+```
+
+## Tests
+
+```bash
+just frontend-test
+just frontend-test-e2e
+just frontend-test-all
+```
+
+## Scripts (direct Bun)
+
+If you are already in `frontend/`:
+
+```bash
+bun run dev
+bun run build
+bun run check
+bun run lint
+bun run format
+bun run format:check
+bun run test
+bun run test:e2e
+```
+
+## Project layout
+
+```text
+frontend/
+├── src/
+│   ├── lib/        # components, shared logic, profile data
+│   ├── routes/     # SvelteKit routes
+│   └── test/       # frontend test helpers
+├── scripts/        # test runner helpers
+├── tests/          # Playwright e2e specs
+└── package.json
+```
+
+## Notes
+
+- Generated protobuf TypeScript artifacts are produced from root via `just generate-ts`.
+- Keep formatting and lint clean before opening PRs.
