@@ -50,6 +50,7 @@ function onThemeToggle() {
 function onDismiss() {
   showWarning = false
   pendingDest = ""
+  goto("/")
 }
 
 function onProceed() {

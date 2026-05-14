@@ -9,10 +9,17 @@ export interface TerminalCommand {
   flags?: string[]
 }
 
+export interface RouteInfo {
+  path: string
+  requiresWarning: boolean
+  description: string
+}
+
 export interface TerminalData {
   directories: Record<string, string[]>
   virtualFiles: Record<string, string>
   fileContents: Record<string, string>
+  routes: RouteInfo[]
 }
 
 export interface TerminalState {
@@ -28,7 +35,35 @@ export interface TerminalExecutionResult {
 
 export type TerminalEffect =
   | { type: "navigate"; href: string; message: string }
+  | { type: "navigateWithWarning"; href: string; message: string; warningLines: TerminalLine[] }
+  | { type: "warningConfirm"; route: RouteInfo; warningLines: TerminalLine[] }
   | null
+
+export const DRAGON_ASCII = `
+             ++          
+              +=++       
+       .       +=*+*     
+     -++*+++   +++ ++-   
+     .+   +-+  +=+ ++ :  
+        -+++   +*++++    
+       :+*   +.++++++    
+       + ++++++++   *    
+    *++.++*+-+ +         
+   =+   +:++ +*:         
+   **   ++ *++++ +       
+    ++  = * ++++ +       
+        +++++++#         `
+
+export const DRAGON_WARNING_HEADER = ` ===============================================================
+                    ! EXPERIMENTAL TERRITORY !
+===============================================================`
+
+export const DRAGON_WARNING_MESSAGE = (route: string) =>
+  `The route '${route}' is experimental.
+Expect bugs, incomplete features, and potential instability.
+
+[1] here be dragons...
+[2] stay away`
 
 export const commands: TerminalCommand[] = [
   { name: "whoami", desc: "Display current user" },
@@ -49,11 +84,23 @@ export function getPrompt(currentDir: string): string {
   return `vladimir@kolchurin:${currentDir.replace("~", "/home/vladimir")}$`
 }
 
+export function routeToName(path: string): string {
+  if (path === "/") return "~"
+  return path.replace(/^\//, "")
+}
+
+export function nameToRoute(name: string): string | null {
+  if (name === "~" || name === "/") return "/"
+  if (name.startsWith("/")) return name
+  return `/${name}`
+}
+
 export function getSuggestions(
   input: string,
   currentDir: string,
   directories: Record<string, string[]>,
-  availableCommands: TerminalCommand[] = commands
+  availableCommands: TerminalCommand[] = commands,
+  routes: RouteInfo[] = []
 ): string[] {
   if (!input) {
     return []
@@ -61,6 +108,15 @@ export function getSuggestions(
 
   const partial = input.trim().toLowerCase()
   const parts = partial.split(/\s+/)
+
+  if (parts.length === 1 && input.endsWith(" ")) {
+    if (input.toLowerCase().startsWith("cd ")) {
+      const routeNames = routes.map((r) => routeToName(r.path))
+      return routeNames
+    }
+    const entries = directories[currentDir] ?? []
+    return entries
+  }
 
   if (parts.length === 1) {
     return availableCommands
@@ -75,12 +131,26 @@ export function getSuggestions(
 
   if (parts.length === 2 && (parts[0] === "cat" || parts[0] === "cd")) {
     const entries = directories[currentDir] ?? []
+    const routeNames = routes.map((r) => routeToName(r.path))
 
-    if (!parts[1]) {
-      return entries
+    let suggestions: string[]
+    if (parts[0] === "cd") {
+      suggestions = routeNames
+    } else {
+      suggestions = entries
     }
 
-    return entries.filter((entry) => entry.toLowerCase().startsWith(parts[1]))
+    const secondArg = parts[1]
+    if (!secondArg) {
+      return suggestions
+    }
+
+    const searchTerm = secondArg.replace(/^\//, "")
+    const normalizedSearch = searchTerm === "~" ? "" : searchTerm
+    return suggestions.filter((entry) => {
+      const entryNorm = entry === "~" ? "" : entry
+      return entryNorm.toLowerCase().startsWith(normalizedSearch)
+    })
   }
 
   return []
@@ -111,7 +181,14 @@ export function applySuggestion(
     return currentInput
   }
 
-  const parts = currentInput.trim().split(/\s+/)
+  const trimmed = currentInput.trim()
+  const isCdCommand = trimmed.toLowerCase() === "cd" || trimmed.toLowerCase().startsWith("cd ")
+
+  if (isCdCommand && (trimmed === "cd" || trimmed.endsWith("cd"))) {
+    return `cd ${suggestions[selectedIndex]} `
+  }
+
+  const parts = trimmed.split(/\s+/)
   parts[parts.length - 1] = suggestions[selectedIndex]
 
   return `${parts.join(" ")} `
@@ -154,8 +231,42 @@ export function executeCommand(
 
     case "cd": {
       const target = args[0] || "~"
+      const routeFromName = nameToRoute(target)
+      if (routeFromName) {
+        const route = data.routes.find((r) => r.path === routeFromName)
+        if (route) {
+          if (route.requiresWarning) {
+            const warningLines: TerminalLine[] = [
+              { type: "output", content: DRAGON_ASCII },
+              { type: "output", content: DRAGON_WARNING_HEADER },
+              { type: "output", content: "" },
+              { type: "output", content: DRAGON_WARNING_MESSAGE(route.path) },
+            ]
+            lines.push(...warningLines)
+            effect = {
+              type: "warningConfirm",
+              route,
+              warningLines,
+            }
+          } else {
+            effect = {
+              type: "navigate",
+              href: route.path,
+              message: `Navigating to ${route.path}...`,
+            }
+            lines.push({ type: "output", content: effect.message })
+          }
+          break
+        }
+      }
+
       if (target === "~" || target === "~/") {
-        currentDir = "~"
+        effect = {
+          type: "navigate",
+          href: "/",
+          message: "Navigating to /...",
+        }
+        lines.push({ type: "output", content: effect.message })
       } else if (target === "..") {
         if (currentDir !== "~") {
           const parts = currentDir.split("/")
@@ -165,11 +276,42 @@ export function executeCommand(
       } else if (target.startsWith("~/")) {
         currentDir = target
       } else {
-        const newPath = currentDir === "~" ? `~/${target}` : `${currentDir}/${target}`
-        if (data.directories[newPath]) {
-          currentDir = newPath
+        const routePath = target.startsWith("/") ? target : `/${target}`
+        const route = data.routes.find((r) => r.path === routePath || r.path === `/${target}`)
+
+        if (route) {
+          if (route.requiresWarning) {
+            const warningLines: TerminalLine[] = [
+              { type: "output", content: DRAGON_ASCII },
+              { type: "output", content: DRAGON_WARNING_HEADER },
+              { type: "output", content: DRAGON_WARNING_MESSAGE(route.path) },
+            ]
+            lines.push(...warningLines)
+            effect = {
+              type: "warningConfirm",
+              route,
+              warningLines,
+            }
+          } else {
+            effect = {
+              type: "navigate",
+              href: route.path,
+              message: `Navigating to ${route.path}...`,
+            }
+            lines.push({ type: "output", content: effect.message })
+          }
+          break
+        }
+
+        if (target.startsWith("/")) {
+          lines.push({ type: "error", content: `cd: no such directory or route: ${target}` })
         } else {
-          lines.push({ type: "error", content: `cd: no such directory: ${target}` })
+          const newPath = currentDir === "~" ? `~/${target}` : `${currentDir}/${target}`
+          if (data.directories[newPath]) {
+            currentDir = newPath
+          } else {
+            lines.push({ type: "error", content: `cd: no such directory or route: ${target}` })
+          }
         }
       }
       break
@@ -178,15 +320,20 @@ export function executeCommand(
     case "ls":
     case "ll": {
       const files = data.directories[currentDir] ?? []
+      const routeNames = currentDir === "~" ? data.routes.map((r) => routeToName(r.path)) : []
+      const allItems = [...files, ...routeNames]
+
       if (args[0] === "-la" || args[0] === "-l" || cmd === "ll") {
-        const output = files.map((file) => {
+        const output = allItems.map((file) => {
           const isDir = data.directories[`${currentDir}/${file}`] !== undefined
-          return `${isDir ? "drwxr-xr-x" : "-rw-r--r--"}  1 vladimir staff 4096 Apr 10  ${file}${isDir ? "/" : ""}`
+          const isRoute = routeNames.includes(file)
+          const perms = isRoute ? "lrwxrwxrwx" : isDir ? "drwxr-xr-x" : "-rw-r--r--"
+          return `${perms}  1 vladimir staff 4096 Apr 10  ${file}${isDir ? "/" : isRoute ? "@" : ""}`
         })
 
         lines.push({ type: "code", content: output.join("\n") })
       } else {
-        lines.push({ type: "output", content: files.join("  ") })
+        lines.push({ type: "output", content: allItems.join("  ") })
       }
       break
     }
@@ -218,12 +365,17 @@ export function executeCommand(
         content: `Available commands:
   whoami        - Display current user
   pwd           - Print working directory
-  cd <dir>      - Change directory
-  ls            - List files
+  cd <dir>      - Change directory (or navigate to routes like /grid)
+  ls            - List files and navigable routes
   cat <file>    - Display file contents
   contact       - Contact me via --email or --phone
   clear         - Clear terminal
   help          - Show this help message
+
+Navigation:
+  cd /          - Go to home page
+  cd /grid      - Go to grid view (shows dragon warning)
+  cd /grid-v2   - Go to grid-v2 view (shows dragon warning)
 
 Try: cat skills.json, cat experience.json, about.txt`,
       })

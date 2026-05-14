@@ -26,21 +26,7 @@ function handleKeydown(e: KeyboardEvent) {
 
 <div class="dragon-overlay" role="dialog" aria-modal="true" aria-labelledby="dragon-title">
   <div class="dragon-modal">
-    <div class="dragon-icon">
-      <svg
-        viewBox="0 0 24 24"
-        fill="currentColor"
-        width="48"
-        height="48"
-        role="img"
-        aria-label="Warning"
-      >
-        <title>Warning</title>
-        <path
-          d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15h2v-2h-2v2zm0-4h2V7h-2v6zm0 8h2v-2h-2v2zm1-11a1.5 1.5 0 110 3 1.5 1.5 0 010-3z"
-        />
-      </svg>
-    </div>
+    <img src="/dragon-warning.png" alt="Dragon" class="dragon-image" />
     <h2 id="dragon-title" class="dragon-title">Experimental Territory</h2>
     <p class="dragon-message">
       The route <code>{destination}</code> is experimental. Expect bugs, incomplete features, and
@@ -82,9 +68,11 @@ function handleKeydown(e: KeyboardEvent) {
     0 25px 50px -12px rgba(0, 0, 0, 0.25);
 }
 
-.dragon-icon {
-  color: var(--accent);
-  margin-bottom: 1rem;
+.dragon-image {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 1rem;
+  border-radius: 50%;
 }
 
 .dragon-title {
