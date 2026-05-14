@@ -1,34 +1,64 @@
 <script lang="ts">
-  import "../app.css";
-  import { onMount } from "svelte";
-  import { page } from "$app/state";
-  import {
-    initializeTheme,
-    toggleTheme,
-    type ThemeMode,
-  } from "$lib/theme/theme-logic";
+import "../app.css"
+import { onMount } from "svelte"
+import { goto } from "$app/navigation"
+import { page } from "$app/state"
+import DragonWarningModal from "$lib/components/DragonWarningModal.svelte"
+import { initializeTheme, type ThemeMode, toggleTheme } from "$lib/theme/theme-logic"
 
-  let { children } = $props();
+let { children } = $props()
 
-  let themeMode = $state<ThemeMode>("dark");
+let themeMode = $state<ThemeMode>("dark")
+let showWarning = $state(false)
+let pendingDest = $state("")
 
-  function getThemeEnv() {
-    const ui = (window as unknown as { ui: (action: string, value?: string) => string }).ui;
+function getThemeEnv() {
+  const ui = (window as unknown as { ui: (action: string, value?: string) => string }).ui
 
-    return {
-      ui,
-      storage: localStorage,
-      bodyClassList: document.body.classList,
-    };
+  return {
+    ui,
+    storage: localStorage,
+    bodyClassList: document.body.classList,
+  }
+}
+
+onMount(() => {
+  themeMode = initializeTheme(getThemeEnv())
+
+  const handleClick = (e: MouseEvent) => {
+    const target = e.target as HTMLElement
+    const link = target.closest("a")
+    if (!link) return
+
+    const href = link.getAttribute("href")
+    if (href === "/grid" || href === "/grid-v2") {
+      e.preventDefault()
+      e.stopImmediatePropagation()
+      pendingDest = href
+      showWarning = true
+    }
   }
 
-  onMount(() => {
-    themeMode = initializeTheme(getThemeEnv());
-  });
+  document.addEventListener("click", handleClick, true)
+  return () => document.removeEventListener("click", handleClick, true)
+})
 
-  function onThemeToggle() {
-    themeMode = toggleTheme(getThemeEnv(), themeMode);
-  }
+function onThemeToggle() {
+  themeMode = toggleTheme(getThemeEnv(), themeMode)
+}
+
+function onDismiss() {
+  showWarning = false
+  pendingDest = ""
+  goto("/")
+}
+
+function onProceed() {
+  const dest = pendingDest
+  showWarning = false
+  pendingDest = ""
+  goto(dest)
+}
 </script>
 
 <svelte:head>
@@ -77,6 +107,10 @@
 </nav>
 
 {@render children()}
+
+{#if showWarning}
+  <DragonWarningModal destination={pendingDest} {onDismiss} {onProceed} />
+{/if}
 
 <style>
   :global(body.light) {
