@@ -2,85 +2,109 @@
     just --list
 
 # Protocol Buffer generation
-generate: # Generate all protobuf clients/stubs (Go + TypeScript)
+generate:
     just generate-go
     just generate-ts
 
-generate-go: # Generate Go protobuf and gRPC code from all proto/*.proto files
+# Generate all protobuf clients/stubs (Go + TypeScript)
+
+# Generate Go protobuf and gRPC code from all proto/*.proto files
+generate-go:
     # Strip leading './' from find output so protoc gets clean relative paths
     cd proto && proto_files=$(find . -type f -name '*.proto' | sort | sed 's#^\./##') && test -n "$proto_files" && protoc --go_out=../backend --go-grpc_out=../backend $proto_files
 
-generate-ts: # Generate TypeScript protobuf code using buf (buf.yaml + buf.gen.yaml)
+# Generate TypeScript protobuf code using buf (buf.yaml + buf.gen.yaml)
+generate-ts:
     buf generate
 
 # Backend commands
-backend-deps: # Download Go module dependencies
+# Download Go module dependencies
+backend-deps:
     cd backend && go mod download
 
-backend-build: # Build backend server binary
+# Build backend server binary
+backend-build:
     cd backend && go build -o bin/server ./cmd/server
 
-backend-run: # Run backend server locally
+# Run backend server locally
+backend-run:
     cd backend && go run ./cmd/server
 
-backend-test: # Run backend test suite
+# Run backend test suite
+backend-test:
     cd backend && go test ./...
 
-backend-test-cover: # Run backend tests with coverage
+# Run backend tests with coverage
+backend-test-cover:
     cd backend && go test -cover ./...
 
 # Frontend commands
-frontend-deps: # Install frontend dependencies
+# Install frontend dependencies
+frontend-deps:
     cd frontend && bun install
 
-frontend-dev: # Start frontend development server
+# Start frontend development server
+frontend-dev:
     cd frontend && bun run dev
 
-frontend-build: # Build frontend for production
+# Build frontend for production
+frontend-build:
     cd frontend && bun run build
 
-frontend-check: # Run Svelte/TypeScript checks
+# Run Svelte/TypeScript checks
+frontend-check:
     cd frontend && bun run check
 
-frontend-lint: # Run Biome lint checks
+# Run Biome lint checks
+frontend-lint:
     cd frontend && bun run lint
 
-frontend-format: # Format frontend code with Biome
+# Format frontend code with Biome
+frontend-format:
     cd frontend && bun run format
 
-frontend-format-check: # Check frontend formatting (no writes)
+# Check frontend formatting (no writes)
+frontend-format-check:
     cd frontend && bun run format:check
 
-frontend-test: # Run frontend unit/component tests
+# Run frontend unit/component tests
+frontend-test:
     cd frontend && bun run test
 
-frontend-test-e2e: # Run frontend Playwright end-to-end tests
+# Run frontend Playwright end-to-end tests
+frontend-test-e2e:
     cd frontend && bun run test:e2e
 
-frontend-test-all: # Run frontend unit/component + e2e tests
+# Run frontend unit/component + e2e tests
+frontend-test-all:
     just frontend-test
     just frontend-test-e2e
 
 # Consolidated test commands
-test: # Run default fast suite (backend + frontend unit tests)
+# Run default fast suite (backend + frontend unit tests)
+test:
     just backend-test
     just frontend-test
 
-test-all: # Run full suite (backend + frontend unit + frontend e2e)
+# Run full suite (backend + frontend unit + frontend e2e)
+test-all:
     just backend-test
     just frontend-test
     just frontend-test-e2e
 
 # Clean
-clean: # Remove generated RPC artifacts
+# Remove generated RPC artifacts
+clean:
     rm -rf backend/internal/rpc/*
     rm -rf frontend/src/lib/gen/*
 
 # Install tools
-install-tools: # Install Go protobuf codegen plugins
+# Install Go protobuf codegen plugins
+install-tools:
     go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
     go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 
 # Consolidated install
-install: install-tools backend-deps frontend-deps # Install tools + backend/frontend deps
+# Install tools + backend/frontend deps
+install: install-tools backend-deps frontend-deps
     echo "Everything's installed"
