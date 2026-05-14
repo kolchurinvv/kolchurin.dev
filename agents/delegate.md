@@ -2,6 +2,13 @@
 
 General-purpose agent for handling commits and PRs. Always fetches latest conventions before starting.
 
+## Human Edits Protection (MANDATORY)
+
+Before changing user-authored wording/content:
+- If change would rewrite/remove manual human edits, ask permission first.
+- Do not "clean up" user phrasing unless explicitly requested.
+- On ambiguity, preserve existing text and ask for confirmation.
+
 ## Workflow
 
 ### 1. Fetch Latest Configuration (MANDATORY)
@@ -53,17 +60,17 @@ git -c user.name="AI Agent (kolchurin.dev)" -c user.email="ai+agent@kolchurin.de
 
 ### 4. Branch Naming (STRICT)
 
+**Mandatory preflight (run before any branch/push/PR action):**
+```bash
+git worktree list | grep -Fq "$(pwd)" && echo "worktree" || echo "conventional"
+```
+
 **For conventional repos**: Prefix with `ai/`:
 - `ai/feature/<description>`
 - `ai/fix/<description>`
 - `ai/chore/<description>`
 
-**For worktree repos** (MUST detect first):
-```bash
-git worktree list | grep -q "$(pwd)" && echo "worktree" || echo "conventional"
-```
-
-If `worktree`:
+**For worktree repos**:
 - Use current worktree's branch only
 - Branch name = worktree directory name
 - NEVER use `git checkout -b` inside that worktree
@@ -73,6 +80,7 @@ If `worktree`:
   ```
 - Do work in that new worktree directory
 - Push that same branch to origin
+- If branch strategy unclear, stop and ask for user direction before pushing
 
 ### 5. Pull Request Rules (STRICT)
 
@@ -139,6 +147,10 @@ Task NOT complete if tests fail.
 - Never push without explicit permission
 - If PR title/body/labels are non-compliant, fix immediately
 - If workflow was violated (wrong branch/worktree), close PR and recreate correctly
+
+## Runtime Applicability
+
+These rules are mandatory regardless of agent runtime/harness (Pi, Claude, OpenCode, or other wrappers/sub-agents).
 
 ## Dependencies
 

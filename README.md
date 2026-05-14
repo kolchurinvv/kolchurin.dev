@@ -1,6 +1,13 @@
 # kolchurin.dev
 
-Personal website and backend playground for a frontend → backend transition.
+[![CI](https://github.com/kolchurinvv/kolchurin.dev/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/kolchurinvv/kolchurin.dev/actions/workflows/ci.yml)
+![Frontend Coverage](docs/badges/frontend-coverage.svg)
+![Backend Coverage](docs/badges/backend-coverage.svg)
+
+Personal website and playground by (and for - aka me) a full-stack engineer increasingly focused on self-hosted solutions, privacy, and security.
+
+> Coverage badges are self-managed. Regenerate from tests with:
+> - `just badges-update`
 
 ## Stack
 
@@ -112,8 +119,9 @@ just generate-ts
 ### Combined
 
 ```bash
-just test       # backend + frontend unit
-just test-all   # backend + frontend unit + frontend e2e
+just test           # backend + frontend unit
+just test-all       # backend + frontend unit + frontend e2e
+just badges-update  # regenerate local coverage badge SVGs
 ```
 
 ## Current status

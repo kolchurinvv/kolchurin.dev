@@ -304,6 +304,13 @@ Biome v2 configuration uses `assist` section for organize imports:
 
 ---
 
+## Human Edits Protection (MANDATORY)
+
+- **Treat explicit human wording/content edits as authoritative.**
+- **If an agent is considering rewriting, "cleaning up," or removing manual user edits (especially in docs/README text), it MUST ask permission first.**
+- If unsure whether a line was intentional human phrasing, ask before changing it.
+- Default behavior: preserve user-authored phrasing verbatim unless user explicitly requests rewording.
+
 ## Git Conventions
 
 **IMPORTANT: Commit and Push Policy**
@@ -311,6 +318,26 @@ Biome v2 configuration uses `assist` section for organize imports:
 - **NEVER push to any remote branch without explicit permission**
 - If the user asks to "save" or "commit" work, create the commit locally and ask if they want to push
 - Always ask before committing, even if the user seems to want changes committed
+
+### PR/Branch Workflow Safety (MANDATORY)
+
+Before creating branches, pushing, or opening a PR, agents MUST detect repo mode:
+
+```bash
+git worktree list | grep -Fq "$(pwd)" && echo "worktree" || echo "conventional"
+```
+
+If mode is **worktree**:
+- **Use the existing worktree branch only** (the branch already checked out in that worktree)
+- **DO NOT run `git checkout -b`** or create additional topic branches inside that worktree
+- Push/update the existing branch and open PR from that same branch
+
+If mode is **conventional**:
+- Create/use a normal topic branch per naming rules
+
+### Universal Agent Compliance (MANDATORY)
+
+These PR/branch rules apply to **all agents and harnesses** used in this repository (including Pi, Claude, OpenCode, or any other sub-agent/tooling wrapper). No exceptions.
 
 **Branch Naming**
 ```
@@ -365,7 +392,7 @@ ai/chore/update-deps
 
 Detect first:
 ```bash
-git worktree list | grep -q "$(pwd)" && echo "worktree" || echo "conventional"
+git worktree list | grep -Fq "$(pwd)" && echo "worktree" || echo "conventional"
 ```
 
 If output is `worktree`, agents MUST:

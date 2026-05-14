@@ -92,6 +92,11 @@ test-all:
     just frontend-test
     just frontend-test-e2e
 
+# Badge commands
+# Update self-managed coverage badges from latest frontend/backend test coverage
+badges-update:
+    ./scripts/update-badges.sh
+
 # Clean
 # Remove generated RPC artifacts
 clean:
