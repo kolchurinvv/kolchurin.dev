@@ -1,19 +1,20 @@
 import { cleanup } from "@testing-library/svelte"
-import "@testing-library/jest-dom/vitest"
 import { afterEach, beforeEach } from "vitest"
-import { installBrowserMocks, resetBrowserMocks } from "./src/test/browser-mocks"
 
-installBrowserMocks()
-
-beforeEach(() => {
-  resetBrowserMocks()
-})
-
-afterEach(() => {
-  cleanup()
-  document.body.className = ""
-
-  document.head.querySelectorAll('link[rel="preload"]').forEach((node) => {
-    node.remove()
+if (typeof window !== "undefined") {
+  // browser setup
+  import("@testing-library/jest-dom/vitest")
+  import("./src/test/browser-mocks").then(({ installBrowserMocks, resetBrowserMocks }) => {
+    installBrowserMocks()
+    beforeEach(() => resetBrowserMocks())
+    afterEach(() => {
+      resetBrowserMocks()
+      cleanup()
+      document.body.className = ""
+      document.head.querySelectorAll('link[rel="preload"]').forEach((node) => node.remove())
+    })
   })
-})
+} else {
+  // node setup
+  afterEach(() => cleanup())
+}
