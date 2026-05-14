@@ -388,5 +388,19 @@ gh pr list --search "Watermark: ai-generated"
 gh pr merge <number> --merge
 ```
 
+## Sub-Agent Configuration
+
+Specialized agent roles stored in `agents/` directory:
+
+| File | Purpose |
+|------|---------|
+| `agents/AGENTS.md` | Index of available sub-agents |
+| `agents/delegate.md` | General-purpose delegate with fetch-from-main workflow |
+
+**Delegation workflow**: When main agent delegates to sub-agent, the sub-agent must:
+1. Fetch latest config from `main` branch: `git fetch origin main && git show main:agents/<file>.md`
+2. Apply those conventions for commits/PRs
+3. Execute task
+
 ## General context
 - Current year is 2026. Use this for any web search
