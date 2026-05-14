@@ -11,7 +11,9 @@ if (typeof window !== "undefined") {
       resetBrowserMocks()
       cleanup()
       document.body.className = ""
-      document.head.querySelectorAll('link[rel="preload"]').forEach((node) => node.remove())
+      document.head.querySelectorAll('link[rel="preload"]').forEach((node) => {
+        node.remove()
+      })
     })
   })
 } else {
