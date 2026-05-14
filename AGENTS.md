@@ -326,5 +326,67 @@ fix: resolve memory leak in gRPC client
 docs: update README with new commands
 refactor: extract user validation to separate module
 ```
+
+### Agent Identity & Author Attribution
+
+**All AI-generated commits must use the agent identity** to distinguish from human work.
+
+**Before any commit**, set the agent git identity:
+```bash
+git config user.name "AI Agent (kolchurin.dev)"
+git config user.email "ai+agent@kolchurin.dev"
+```
+
+Or override per-commit:
+```bash
+git -c user.name="AI Agent (kolchurin.dev)" -c user.email="ai+agent@kolchurin.dev" commit -m "msg"
+```
+
+**Restore human identity after agent session** (if changed via `git config`):
+```bash
+git config --unset user.name
+git config --unset user.email
+```
+
+The `.gitconfig-agent` file at project root holds the agent identity as fallback.
+
+### Branch Naming (AI Agent)
+
+Prefix AI agent branches with `ai/`:
+```
+ai/feature/add-blog-posts
+ai/fix/memory-leak
+ai/chore/update-deps
+```
+
+### Pull Request Creation (AI Agent)
+
+When creating PRs, agents must watermark them:
+
+1. **PR body watermark** — append at the end:
+   ```
+   ---
+   🤖 Watermark: ai-generated
+   Signed-off-by: AI Agent <ai+agent@kolchurin.dev>
+   ```
+
+2. **Label** — if `ai-generated` label exists, add it:
+   ```bash
+   gh pr edit <number> --add-label "ai-generated"
+   ```
+
+3. **PR title prefix** — prefix with `ai: `:
+   ```
+   ai: feat(terminal): add route navigation
+   ai: fix: resolve memory leak
+   ```
+
+### Finding AI PRs
+
+```bash
+gh pr list --search "Watermark: ai-generated"
+gh pr merge <number> --merge
+```
+
 ## General context
 - Current year is 2026. Use this for any web search
