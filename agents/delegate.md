@@ -53,10 +53,22 @@ git -c user.name="AI Agent (kolchurin.dev)" -c user.email="ai+agent@kolchurin.de
 
 ### 4. Branch Naming
 
-Prefix with `ai/`:
+**For conventional repos**: Prefix with `ai/`:
 - `ai/feature/<description>`
 - `ai/fix/<description>`
 - `ai/chore/<description>`
+
+**For worktree repos** (MUST detect first):
+```bash
+# Detect if using worktrees
+git worktree list | grep -q "$(pwd)" && echo "worktree" || echo "conventional"
+```
+
+If worktree:
+- Use existing worktree's branch (don't create new branches)
+- Branch name = worktree directory name (e.g., `gh-pr-pipeline`, `in-dev-warning`)
+- Push to existing remote branch or create new one on origin with same name
+- NEVER use `git checkout -b` to create new branches inside a worktree
 
 ### 5. Pull Request Rules
 
