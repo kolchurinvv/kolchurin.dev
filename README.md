@@ -9,10 +9,12 @@ Personal website and playground by (and for - aka me) a full-stack engineer incr
 > Coverage badges are self-managed. Regenerate from tests with:
 > - `just badges-update`
 
-## Tech Stack
-- **Frontend**: SvelteKit (TypeScript, Bun)
-- **Backend**: Go with gRPC
-- **Database**: Valkey (Redis-compatible)
+## Stack
+
+- **Frontend:** SvelteKit + TypeScript + Bun
+- **Backend:** Go + gRPC
+- **Data store:** Valkey (Redis-compatible)
+- **Tooling:** Just, Buf, Protobuf, Biome, Vitest, Playwright, Nix Flakes
 
 ## Repository layout
 
@@ -77,5 +79,63 @@ Default local endpoints:
 ## Environment variables
 
 | Variable | Default | Used by | Description |
-| --- | --- | --- | --- |
-| `VALKEY_ADDR` | `localhost:6379` | `backend` | Valkey server address |
+|---|---|---|---|
+| `VALKEY_ADDR` | `localhost:6379` | backend | Valkey server address |
+
+## Common commands
+
+### Frontend
+
+```bash
+just frontend-deps
+just frontend-dev
+just frontend-build
+just frontend-check
+just frontend-lint
+just frontend-format
+just frontend-format-check
+just frontend-test
+just frontend-test-e2e
+```
+
+### Backend
+
+```bash
+just backend-deps
+just backend-run
+just backend-build
+just backend-test
+just backend-test-cover
+```
+
+### Protobuf
+
+```bash
+just generate
+just generate-go
+just generate-ts
+```
+
+### Combined
+
+```bash
+just test           # backend + frontend unit
+just test-all       # backend + frontend unit + frontend e2e
+just badges-update  # regenerate local coverage badge SVGs
+```
+
+## Current status
+
+- Frontend portfolio site is active and evolving.
+- gRPC contract is defined in `proto/blog.proto`.
+- Backend blog service methods are scaffolded and ready for implementation.
+
+## Deployment
+
+Kubernetes/K3s manifests and instructions live in:
+
+- `deployment/README.md`
+
+## License
+
+No license file has been added yet.
