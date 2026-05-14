@@ -68,56 +68,57 @@ jobs:
           path: frontend/playwright-report
           if-no-files-found: ignore
 
-  build-and-push:
+  build-and-push-preview:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     needs: frontend-quality
+    environment:
+      name: preview
+      url: https://preview.your-app.com # Optional: Put your preview base URL here
     permissions:
       contents: read
       packages: write
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v6.0.2
-
       - name: Login to Container Registry
         run: |
           echo "${{ env.GH_TOKEN }}" | podman login ${{ env.REGISTRY }} \
             -u ${{ github.actor }} --password-stdin
-      - name: Build and Push
+      - name: Build and Push Preview
         run: |
-          # 1. Define variables based on the environment
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            # PREVIEW ENVIRONMENT
-            TAG="preview-${{ github.head_ref }}"
-            WEBHOOK_URL="${{ secrets.PREVIEW_WEBHOOK_URL }}"
-            echo "Running in Preview mode: $TAG"
-          else
-            # PRODUCTION ENVIRONMENT
-            TAG="latest"
-            WEBHOOK_URL="${{ secrets.PRODUCTION_WEBHOOK_URL }}"
-            echo "Running in Production mode: $TAG"
-          fi
-
-          # 2. Build the image using podman
-          # Using the tag we defined above
-
-      - name: Build frontend image
+          TAG="preview-${{ github.head_ref }}"
+          podman build -t ghcr.io/${{ github.repository }}/frontend:${{ github.sha }} -f ./deployment/Dockerfile.frontend ./frontend
+          podman tag ghcr.io/${{ github.repository }}/frontend:${{ github.sha }} ghcr.io/${{ github.repository }}/frontend:$TAG
+          podman push ghcr.io/${{ github.repository }}/frontend:${{ github.sha }}
+          podman push ghcr.io/${{ github.repository }}/frontend:$TAG
+      - name: Trigger Dokploy Preview
         run: |
-          podman build -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ github.sha }} \
-            -f ./deployment/Dockerfile.frontend ./frontend
+          curl -X POST ${{ secrets.PREVIEW_WEBHOOK_URL }}
 
-      - name: Tag for image
+  build-and-push-prod:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    needs: frontend-quality
+    environment:
+      name: production
+      url: https://your-app.com # This makes the "View Deployment" button work!
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6.0.2
+      - name: Login to Container Registry
         run: |
-          podman tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ github.sha }} \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:$$TAG
-
-      - name: Push prod image
-        if: github.event_name != 'pull_request'
+          echo "${{ env.GH_TOKEN }}" | podman login ${{ env.REGISTRY }} \
+            -u ${{ github.actor }} --password-stdin
+      - name: Build and Push Production
         run: |
-          podman push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ github.sha }}
-          podman push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:latest
-
-      - name: Trigger Dokploy deployment
-        if: github.event_name != 'pull_request'
+          podman build -t ghcr.io/${{ github.repository }}/frontend:${{ github.sha }} -f ./deployment/Dockerfile.frontend ./frontend
+          podman tag ghcr.io/${{ github.repository }}/frontend:${{ github.sha }} ghcr.io/${{ github.repository }}/frontend:latest
+          podman push ghcr.io/${{ github.repository }}/frontend:${{ github.sha }}
+          podman push ghcr.io/${{ github.repository }}/frontend:latest
+      - name: Trigger Dokploy Production
         run: |
-          curl -X POST $WEBHOOK_URL
+          curl -X POST ${{ secrets.PRODUCTION_WEBHOOK_URL }}
