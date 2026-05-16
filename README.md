@@ -1,6 +1,4 @@
-# kolchurin.dev
-
-#### Personal website and backend a playground.
+Personal website and backend a playground.
 =======
 [![CI](https://github.com/kolchurinvv/kolchurin.dev/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/kolchurinvv/kolchurin.dev/actions/workflows/ci.yml)
 ![Frontend Coverage](docs/badges/frontend-coverage.svg)
