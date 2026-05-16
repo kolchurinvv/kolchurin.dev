@@ -304,6 +304,13 @@ Biome v2 configuration uses `assist` section for organize imports:
 
 ---
 
+## Human Edits Protection (MANDATORY)
+
+- **Treat explicit human wording/content edits as authoritative.**
+- **If an agent is considering rewriting, "cleaning up," or removing manual user edits (especially in docs/README text), it MUST ask permission first.**
+- If unsure whether a line was intentional human phrasing, ask before changing it.
+- Default behavior: preserve user-authored phrasing verbatim unless user explicitly requests rewording.
+
 ## Git Conventions
 
 **IMPORTANT: Commit and Push Policy**
@@ -311,6 +318,26 @@ Biome v2 configuration uses `assist` section for organize imports:
 - **NEVER push to any remote branch without explicit permission**
 - If the user asks to "save" or "commit" work, create the commit locally and ask if they want to push
 - Always ask before committing, even if the user seems to want changes committed
+
+### PR/Branch Workflow Safety (MANDATORY)
+
+Before creating branches, pushing, or opening a PR, agents MUST detect repo mode:
+
+```bash
+git worktree list | grep -Fq "$(pwd)" && echo "worktree" || echo "conventional"
+```
+
+If mode is **worktree**:
+- **Use the existing worktree branch only** (the branch already checked out in that worktree)
+- **DO NOT run `git checkout -b`** or create additional topic branches inside that worktree
+- Push/update the existing branch and open PR from that same branch
+
+If mode is **conventional**:
+- Create/use a normal topic branch per naming rules
+
+### Universal Agent Compliance (MANDATORY)
+
+These PR/branch rules apply to **all agents and harnesses** used in this repository (including Pi, Claude, OpenCode, or any other sub-agent/tooling wrapper). No exceptions.
 
 **Branch Naming**
 ```
@@ -352,6 +379,8 @@ The `.gitconfig-agent` file at project root holds the agent identity as fallback
 
 ### Branch Naming (AI Agent)
 
+#### Conventional repo (no worktree)
+
 Prefix AI agent branches with `ai/`:
 ```
 ai/feature/add-blog-posts
@@ -359,27 +388,74 @@ ai/fix/memory-leak
 ai/chore/update-deps
 ```
 
-### Pull Request Creation (AI Agent)
+#### Worktree repo (MANDATORY override)
 
-When creating PRs, agents must watermark them:
+Detect first:
+```bash
+git worktree list | grep -Fq "$(pwd)" && echo "worktree" || echo "conventional"
+```
 
-1. **PR body watermark** — append at the end:
+If output is `worktree`, agents MUST:
+- use the branch already attached to the current worktree
+- keep branch name equal to worktree directory name
+- NEVER run `git checkout -b` inside that worktree
+- if a new PR branch is needed, create a new worktree from `main`:
+  ```bash
+  git worktree add ../<branch-name> -b <branch-name> main
+  ```
+
+### Pull Request Creation (AI Agent, MANDATORY)
+
+All AI-created PRs must satisfy ALL rules below.
+
+1. **PR title prefix** — must start with `ai: `
+   ```
+   ai: feat(terminal): add route navigation
+   ai: fix: resolve memory leak
+   ```
+
+2. **PR body watermark** — append at the end:
    ```
    ---
    🤖 Watermark: ai-generated
    Signed-off-by: AI Agent <ai+agent@kolchurin.dev>
    ```
 
-2. **Label** — if `ai-generated` label exists, add it:
+3. **Label** — if `ai-generated` label exists, add it:
    ```bash
    gh pr edit <number> --add-label "ai-generated"
    ```
 
-3. **PR title prefix** — prefix with `ai: `:
+4. **Use `--body-file`, never inline markdown with backticks**
+
+   This avoids shell command substitution corrupting PR bodies.
+
+   Required pattern:
+   ```bash
+   cat > /tmp/pr-body.md <<'EOF'
+   ## Summary
+   - ...
+
+   ## Validation
+   - `just frontend-test`
+   - `just frontend-test-e2e`
+
+   ---
+   🤖 Watermark: ai-generated
+   Signed-off-by: AI Agent <ai+agent@kolchurin.dev>
+   EOF
+
+   gh pr create --base main --head <branch> \
+     --title "ai: <type>: <summary>" \
+     --body-file /tmp/pr-body.md
    ```
-   ai: feat(terminal): add route navigation
-   ai: fix: resolve memory leak
+
+5. **Post-create verification**
+   ```bash
+   gh pr view <number> --json title,body,headRefName,baseRefName,url
    ```
+
+If any rule is missed, close and recreate the PR correctly.
 
 ### Finding AI PRs
 

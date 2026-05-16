@@ -2,6 +2,13 @@
 
 General-purpose agent for handling commits and PRs. Always fetches latest conventions before starting.
 
+## Human Edits Protection (MANDATORY)
+
+Before changing user-authored wording/content:
+- If change would rewrite/remove manual human edits, ask permission first.
+- Do not "clean up" user phrasing unless explicitly requested.
+- On ambiguity, preserve existing text and ask for confirmation.
+
 ## Workflow
 
 ### 1. Fetch Latest Configuration (MANDATORY)
@@ -51,26 +58,31 @@ Use agent identity for all commits:
 git -c user.name="AI Agent (kolchurin.dev)" -c user.email="ai+agent@kolchurin.dev" commit -m "..."
 ```
 
-### 4. Branch Naming
+### 4. Branch Naming (STRICT)
+
+**Mandatory preflight (run before any branch/push/PR action):**
+```bash
+git worktree list | grep -Fq "$(pwd)" && echo "worktree" || echo "conventional"
+```
 
 **For conventional repos**: Prefix with `ai/`:
 - `ai/feature/<description>`
 - `ai/fix/<description>`
 - `ai/chore/<description>`
 
-**For worktree repos** (MUST detect first):
-```bash
-# Detect if using worktrees
-git worktree list | grep -q "$(pwd)" && echo "worktree" || echo "conventional"
-```
+**For worktree repos**:
+- Use current worktree's branch only
+- Branch name = worktree directory name
+- NEVER use `git checkout -b` inside that worktree
+- If new branch needed, create a NEW worktree from main:
+  ```bash
+  git worktree add ../<branch-name> -b <branch-name> main
+  ```
+- Do work in that new worktree directory
+- Push that same branch to origin
+- If branch strategy unclear, stop and ask for user direction before pushing
 
-If worktree:
-- Use existing worktree's branch (don't create new branches)
-- Branch name = worktree directory name (e.g., `gh-pr-pipeline`, `in-dev-warning`)
-- Push to existing remote branch or create new one on origin with same name
-- NEVER use `git checkout -b` to create new branches inside a worktree
-
-### 5. Pull Request Rules
+### 5. Pull Request Rules (STRICT)
 
 **Title**: Prefix with `ai: `
 ```
@@ -80,11 +92,41 @@ ai: fix: resolve memory leak
 
 **Body**:
 - Summary: 1-3 bullet points of changes
+- Validation commands executed
 - Watermark at end:
 ```
 ---
 🤖 Watermark: ai-generated
 Signed-off-by: AI Agent <ai+agent@kolchurin.dev>
+```
+
+**Creation command safety**:
+- NEVER pass markdown body inline with `--body "..."` if it contains backticks
+- ALWAYS use `--body-file`
+
+Required pattern:
+```bash
+cat > /tmp/pr-body.md <<'EOF'
+## Summary
+- ...
+
+## Validation
+- `just frontend-test`
+- `just frontend-test-e2e`
+
+---
+🤖 Watermark: ai-generated
+Signed-off-by: AI Agent <ai+agent@kolchurin.dev>
+EOF
+
+gh pr create --base main --head <branch> \
+  --title "ai: <type>: <summary>" \
+  --body-file /tmp/pr-body.md
+```
+
+**Post-create verification**:
+```bash
+gh pr view <number> --json title,body,headRefName,baseRefName,url
 ```
 
 **Labels**: Add `ai-generated` if exists
@@ -103,6 +145,12 @@ Task NOT complete if tests fail.
 - If fetch fails, warn and use local config
 - If tests fail, report failure to main agent
 - Never push without explicit permission
+- If PR title/body/labels are non-compliant, fix immediately
+- If workflow was violated (wrong branch/worktree), close PR and recreate correctly
+
+## Runtime Applicability
+
+These rules are mandatory regardless of agent runtime/harness (Pi, Claude, OpenCode, or other wrappers/sub-agents).
 
 ## Dependencies
 
