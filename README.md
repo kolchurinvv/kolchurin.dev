@@ -1,6 +1,6 @@
 # kolchurin.dev
 
-Personal website and backend playground for a frontend → backend transition.
+Personal website and backend a playground.
 =======
 [![CI](https://github.com/kolchurinvv/kolchurin.dev/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/kolchurinvv/kolchurin.dev/actions/workflows/ci.yml)
 ![Frontend Coverage](docs/badges/frontend-coverage.svg)
@@ -142,6 +142,7 @@ just badges-update  # regenerate local coverage badge SVGs
 Kubernetes/K3s manifests and instructions live in:
 
 - `deployment/README.md`
+... eventually. Right now it's just deployed via Dokploy -- webhook in prod build ci
 
 ## License
 
