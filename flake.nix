@@ -21,13 +21,14 @@
             bun
             vitejs
             nodejs_25 # needed for nvim plugins
-            playwright-driver
+            just
 
             buf
             protobuf
             protoc-gen-go
             protoc-gen-go-grpc
 
+            chromium
           ];
 
           shellHook = ''
