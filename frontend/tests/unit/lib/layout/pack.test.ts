@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest"
 import { packAnchored } from "../../../../src/lib/layout/pack"
-import type { PackRequest, PackResponse, Position, TileMeta } from "../../../../src/lib/layout/types"
+import type {
+  PackRequest,
+  PackResponse,
+  Position,
+  TileMeta,
+} from "../../../../src/lib/layout/types"
 
 function tile(
   id: string,
@@ -36,10 +41,7 @@ function makeRequest(overrides: Partial<PackRequest> = {}): PackRequest {
 
 function rectsOverlap(a: Position, b: Position): boolean {
   return (
-    a.x < b.x + b.w - 0.5 &&
-    a.x + a.w > b.x + 0.5 &&
-    a.y < b.y + b.h - 0.5 &&
-    a.y + a.h > b.y + 0.5
+    a.x < b.x + b.w - 0.5 && a.x + a.w > b.x + 0.5 && a.y < b.y + b.h - 0.5 && a.y + a.h > b.y + 0.5
   )
 }
 
@@ -147,9 +149,7 @@ describe("packAnchored", () => {
 
   it("respects the priority order when assigning anchor size", () => {
     // Swap priorities: now `header` is highest
-    const swapped = SAMPLE.map((t) =>
-      t.id === "header" ? { ...t, priority: 100 } : t
-    )
+    const swapped = SAMPLE.map((t) => (t.id === "header" ? { ...t, priority: 100 } : t))
     const res = expectPack(packAnchored(makeRequest({ tiles: swapped })))
     // Largest tile by area should be `header`
     const byArea = res.positions
@@ -159,11 +159,7 @@ describe("packAnchored", () => {
   })
 
   it("breaks ties by id for stable ordering", () => {
-    const ties: TileMeta[] = [
-      tile("zebra", 5),
-      tile("alpha", 5),
-      tile("mike", 5),
-    ]
+    const ties: TileMeta[] = [tile("zebra", 5), tile("alpha", 5), tile("mike", 5)]
     const res = expectPack(packAnchored(makeRequest({ tiles: ties })))
     // After stable sort by priority desc then id asc, anchor should be 'alpha'
     const sortedByArea = [...res.positions].sort((a, b) => b.w * b.h - a.w * a.h)

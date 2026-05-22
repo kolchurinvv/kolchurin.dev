@@ -48,7 +48,8 @@ test.describe("grid-v4 priority-anchored layout", () => {
 
       if (mode === "pack") {
         for (const tile of tiles) {
-          expect.soft(tile.scrollHeight, `tile ${tile.id} should not scroll vertically`)
+          expect
+            .soft(tile.scrollHeight, `tile ${tile.id} should not scroll vertically`)
             .toBeLessThanOrEqual(tile.clientHeight + 1)
         }
         // Document itself must not scroll in pack mode
