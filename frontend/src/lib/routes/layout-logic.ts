@@ -236,7 +236,7 @@ export interface FluidLayoutItem {
   order: number;
 }
 
-export function computeFluidLayout<T extends PrioritySection>(
+export function computeFluidLayout<T extends PrioritySection & { id: string }>(
   sections: T[],
   viewportWidth: number,
 ): FluidLayoutItem[] {
