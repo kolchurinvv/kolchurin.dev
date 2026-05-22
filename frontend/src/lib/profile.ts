@@ -2,6 +2,7 @@ export const contact = {
   phone: "+420 605 376 615",
   email: "vladimir@kolchurin.dev",
   github: "github.com/kolchurinvv",
+  linkedin: "www.linkedin.com/in/vladimir-kolchurin/",
 }
 
 export const skills = [
@@ -119,7 +120,8 @@ export const experienceJson = JSON.stringify(experience, null, 2)
 
 export const contactText = `Email: ${contact.email}
 Phone: ${contact.phone}
-GitHub: ${contact.github}`
+GitHub: ${contact.github}
+LinkedIn: ${contact.linkedin}`
 
 export const projectsJson = JSON.stringify(projects, null, 2)
 

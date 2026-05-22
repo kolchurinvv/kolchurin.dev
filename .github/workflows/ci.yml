@@ -6,10 +6,18 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
   frontend-quality:
@@ -20,10 +28,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6.0.2
 
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@v2.2.0
         with:
           bun-version: latest
 
@@ -50,7 +58,7 @@ jobs:
 
       - name: Upload coverage report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: frontend-coverage
           path: frontend/coverage
@@ -58,45 +66,92 @@ jobs:
 
       - name: Upload Playwright report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: frontend-playwright-report
           path: frontend/playwright-report
           if-no-files-found: ignore
 
-  build-and-push:
+  backend-quality:
     runs-on: ubuntu-latest
-    needs: frontend-quality
-    permissions:
-      contents: read
-      packages: write
+    defaults:
+      run:
+        working-directory: backend
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6.0.2
 
+      - name: Setup Go
+        uses: actions/setup-go@v6.0.0
+        with:
+          go-version-file: backend/go.mod
+
+      - name: Download backend dependencies
+        run: go mod download
+
+      - name: Run backend tests with coverage
+        run: go test -covermode=atomic -coverprofile=coverage.out ./...
+
+      - name: Upload backend coverage report
+        if: always()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: backend-coverage
+          path: backend/coverage.out
+          if-no-files-found: ignore
+
+  build-and-push-preview:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    needs: [frontend-quality, backend-quality]
+    environment:
+      name: preview
+      url: https://preview.your-app.com # Optional: Put your preview base URL here
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6.0.2
       - name: Login to Container Registry
         run: |
           echo "${{ env.GH_TOKEN }}" | podman login ${{ env.REGISTRY }} \
             -u ${{ github.actor }} --password-stdin
-
-      - name: Build frontend image
+      - name: Build and Push Preview
         run: |
-          podman build -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ github.sha }} \
-            -f ./deployment/Dockerfile.frontend ./frontend
-
-      - name: Tag for latest
+          TAG="preview-${{ github.head_ref }}"
+          podman build -t ghcr.io/${{ github.repository }}/frontend:${{ github.sha }} -f ./deployment/Dockerfile.frontend ./frontend
+          podman tag ghcr.io/${{ github.repository }}/frontend:${{ github.sha }} ghcr.io/${{ github.repository }}/frontend:$TAG
+          podman push ghcr.io/${{ github.repository }}/frontend:${{ github.sha }}
+          podman push ghcr.io/${{ github.repository }}/frontend:$TAG
+      - name: Trigger Dokploy Preview
         run: |
-          podman tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ github.sha }} \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:latest
+          curl -X POST ${{ secrets.PREVIEW_WEBHOOK_URL }}
 
-      - name: Push image
-        if: github.event_name != 'pull_request'
+  build-and-push-prod:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    needs: [frontend-quality, backend-quality]
+    environment:
+      name: production
+      url: https://kolchurin.dev
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6.0.2
+      - name: Login to Container Registry
         run: |
-          podman push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ github.sha }}
-          podman push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:latest
-
-      - name: Trigger Dokploy deployment
-        if: github.event_name != 'pull_request'
+          echo "${{ env.GH_TOKEN }}" | podman login ${{ env.REGISTRY }} \
+            -u ${{ github.actor }} --password-stdin
+      - name: Build and Push Production
         run: |
-          curl -X POST https://app.dokploy.com/api/deploy/YIUS7MXt-JDLs2DShE-D4
+          podman build -t ghcr.io/${{ github.repository }}/frontend:${{ github.sha }} -f ./deployment/Dockerfile.frontend ./frontend
+          podman tag ghcr.io/${{ github.repository }}/frontend:${{ github.sha }} ghcr.io/${{ github.repository }}/frontend:latest
+          podman push ghcr.io/${{ github.repository }}/frontend:${{ github.sha }}
+          podman push ghcr.io/${{ github.repository }}/frontend:latest
+      - name: Trigger Dokploy Production
+        run: |
+          curl -X POST ${{ secrets.PRODUCTION_WEBHOOK_URL }}

@@ -47,21 +47,30 @@ function closePdf() {
             <span class="arg">--email</span>
             <span class="value">{contact.email}</span>
           </a>
-          <div class="contact-secondary">
-            <a
-              href="https://{contact.github}"
-              target="_blank"
-              rel="noopener"
-              class="secondary-link"
-            >
-              <i class="tiny">code</i>
-              {contact.github}
-            </a>
-            <a href="tel:{contact.phone.replace(/\s/g, '')}" class="secondary-link">
-              <i class="tiny">phone</i>
-              {contact.phone}
-            </a>
-          </div>
+<div class="contact-secondary">
+  <a
+    href="https://{contact.github}"
+    target="_blank"
+    rel="noopener"
+    class="secondary-link"
+  >
+    <i class="tiny">code</i>
+    {contact.github}
+  </a>
+  <a
+    href="https://{contact.linkedin}"
+    target="_blank"
+    rel="noopener"
+    class="secondary-link"
+  >
+    <i class="tiny">link</i>
+    linkedin
+  </a>
+  <a href="tel:{contact.phone.replace(/\s/g, '')}" class="secondary-link">
+    <i class="tiny">phone</i>
+    {contact.phone}
+  </a>
+</div>
         </div>
       </div>
     </div>

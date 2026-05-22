@@ -7,6 +7,8 @@ import {
   executeCommand,
   getSuggestions,
   type TerminalLine,
+  type RouteInfo,
+  type TerminalEffect,
 } from "$lib/components/terminal-logic"
 
 let selectedIndex = $state(-1)
@@ -17,7 +19,7 @@ onMount(() => {
 })
 
 function updateSuggestions(input: string) {
-  suggestions = getSuggestions(input, currentDir, directories)
+  suggestions = getSuggestions(input, currentDir, directories, undefined, routes)
   selectedIndex = suggestions.length > 0 ? 0 : -1
 }
 
@@ -43,6 +45,7 @@ let lines = $state<TerminalLine[]>([
 let currentInput = $state("")
 let currentDir = $state("~")
 let inputRef: HTMLInputElement
+let pendingWarning = $state<RouteInfo | null>(null)
 
 const virtualFiles: Record<string, string> = {
   "about.txt": aboutText,
@@ -74,7 +77,35 @@ pkgs.mkShell {
 }`,
 }
 
+const routes: RouteInfo[] = [
+  { path: "/", requiresWarning: false, description: "Home page" },
+  { path: "/grid", requiresWarning: true, description: "Grid layout view" },
+  { path: "/grid-v2", requiresWarning: true, description: "Masonry layout view" },
+]
+
 function handleCommand(input: string) {
+  if (pendingWarning) {
+    const cmd = input.trim()
+    if (cmd === "1") {
+      window.location.href = pendingWarning.path
+      pendingWarning = null
+    } else if (cmd === "2") {
+      window.location.href = "/"
+      pendingWarning = null
+    } else {
+      lines = [
+        ...lines,
+        {
+          type: "input" as const,
+          content: `vladimir@kolchurin:${currentDir}$ ${input}`,
+        },
+        { type: "error", content: "Invalid choice. Type '1' to proceed or '2' to stay." },
+      ]
+    }
+    currentInput = ""
+    return
+  }
+
   const result = executeCommand(
     {
       lines,
@@ -85,6 +116,7 @@ function handleCommand(input: string) {
       directories,
       virtualFiles,
       fileContents,
+      routes,
     }
   )
 
@@ -93,6 +125,8 @@ function handleCommand(input: string) {
 
   if (result.effect?.type === "navigate") {
     window.location.href = result.effect.href
+  } else if (result.effect?.type === "warningConfirm") {
+    pendingWarning = result.effect.route
   }
 
   currentInput = ""

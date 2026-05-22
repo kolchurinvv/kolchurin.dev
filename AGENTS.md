@@ -30,76 +30,76 @@ Personal website project for a developer transitioning from frontend to backend,
 
 ## Build Commands
 
-### Frontend (Bun)
+Use `just` recipes from project root as the default interface for local tasks.
+
+### Frontend
 
 ```bash
-cd frontend
-
 # Install dependencies
-bun install
+just frontend-deps
 
 # Development server
-bun run dev
+just frontend-dev
 
 # Build for production
-bun run build
-
-# Preview production build
-bun run preview
+just frontend-build
 
 # Type checking
-bun run check
+just frontend-check
 
-# Biome lint + format
-bun run lint      # Check linting
-bun run format    # Format code
-bun run format:check  # Check formatting without fixing
+# Lint + format
+just frontend-lint
+just frontend-format
+just frontend-format-check
+
+# Unit/component tests
+just frontend-test
+
+# End-to-end tests
+just frontend-test-e2e
 ```
 
-### Backend (Go)
+### Backend
 
 ```bash
-cd backend
-
 # Install dependencies
-go mod download
-
-# Generate protobuf code
-make generate
+just backend-deps
 
 # Run development server
-make run
+just backend-run
 
 # Build binary
-make build
+just backend-build
 
-# Run tests
-go test ./...
-
-# Run tests with coverage
-go test -cover ./...
-
-# Run single test
-go test ./internal/api/... -run TestServiceName -v
-
-# Lint
-golangci-lint run
-
-# Format code
-go fmt ./...
+# Tests
+just backend-test
+just backend-test-cover
 ```
 
 ### Protocol Buffers
 
 ```bash
-# Generate all protobuf code (from project root)
-make generate
+# Generate all protobuf code (Go + TypeScript)
+just generate
 
-# Generate specifically for Go
-cd proto && protoc --go_out=../backend --go-grpc_out=../backend *.proto
+# Generate only Go stubs
+just generate-go
 
-# Generate specifically for TypeScript
-cd proto && protoc --ts_out=../frontend/src/rpc *.proto
+# Generate only TypeScript stubs (buf)
+just generate-ts
+```
+
+### Consolidated Tasks
+
+```bash
+# Install tools + all dependencies
+just install
+
+# Fast suite (backend + frontend unit tests)
+just test
+
+# Full suite (backend + frontend unit + frontend e2e)
+just test-all
 ```
 
 ---
@@ -228,17 +228,15 @@ service BlogService {
 
 ### Frontend
 ```bash
-bun run test          # Run all tests
-bun run test:watch    # Watch mode
-bun test src/lib/utils.test.ts -w  # Single file watch mode
+just frontend-test         # Run unit/component tests
+just frontend-test-e2e     # Run end-to-end tests
+just frontend-test-all     # Run unit/component + e2e
 ```
 
 ### Backend
 ```bash
-go test ./...              # All tests
-go test -v ./internal/api/...  # Verbose output
-go test -run ^TestName$ ./...  # Run specific test by name
-go test -cover ./...       # With coverage report
+just backend-test          # All backend tests
+just backend-test-cover    # Backend tests with coverage
 ```
 
 ### Test Naming
@@ -253,9 +251,9 @@ TestBlogController_CreatePost_Unauthorized
 - **Agents must keep all tests green after every edit.**
 - A task is **not complete** if any relevant test suite fails.
 - At minimum, agents must run the relevant suites for touched code before handing off:
-  - Frontend changes: `bun run test` and `bun run test:e2e`
-  - Backend changes: `go test ./...`
-  - Cross-cutting changes: run both frontend and backend suites
+  - Frontend changes: `just frontend-test` and `just frontend-test-e2e`
+  - Backend changes: `just backend-test`
+  - Cross-cutting changes: run both frontend and backend suites (`just test-all`)
 
 ### New Feature Testing Requirement (Strict)
 
@@ -275,7 +273,7 @@ Biome is configured via `frontend/biome.json`. Default rules:
 - Semicolons: required
 - Quote style: double quotes
 
-Run `bun run format` before committing. CI enforces formatting checks.
+Run `just frontend-format` before committing. CI enforces formatting checks.
 
 Biome v2 configuration uses `assist` section for organize imports:
 ```json
@@ -306,6 +304,13 @@ Biome v2 configuration uses `assist` section for organize imports:
 
 ---
 
+## Human Edits Protection (MANDATORY)
+
+- **Treat explicit human wording/content edits as authoritative.**
+- **If an agent is considering rewriting, "cleaning up," or removing manual user edits (especially in docs/README text), it MUST ask permission first.**
+- If unsure whether a line was intentional human phrasing, ask before changing it.
+- Default behavior: preserve user-authored phrasing verbatim unless user explicitly requests rewording.
+
 ## Git Conventions
 
 **IMPORTANT: Commit and Push Policy**
@@ -313,6 +318,26 @@ Biome v2 configuration uses `assist` section for organize imports:
 - **NEVER push to any remote branch without explicit permission**
 - If the user asks to "save" or "commit" work, create the commit locally and ask if they want to push
 - Always ask before committing, even if the user seems to want changes committed
+
+### PR/Branch Workflow Safety (MANDATORY)
+
+Before creating branches, pushing, or opening a PR, agents MUST detect repo mode:
+
+```bash
+git worktree list | grep -Fq "$(pwd)" && echo "worktree" || echo "conventional"
+```
+
+If mode is **worktree**:
+- **Use the existing worktree branch only** (the branch already checked out in that worktree)
+- **DO NOT run `git checkout -b`** or create additional topic branches inside that worktree
+- Push/update the existing branch and open PR from that same branch
+
+If mode is **conventional**:
+- Create/use a normal topic branch per naming rules
+
+### Universal Agent Compliance (MANDATORY)
+
+These PR/branch rules apply to **all agents and harnesses** used in this repository (including Pi, Claude, OpenCode, or any other sub-agent/tooling wrapper). No exceptions.
 
 **Branch Naming**
 ```
@@ -328,5 +353,130 @@ fix: resolve memory leak in gRPC client
 docs: update README with new commands
 refactor: extract user validation to separate module
 ```
+
+### Agent Identity & Author Attribution
+
+**All AI-generated commits must use the agent identity** to distinguish from human work.
+
+**Before any commit**, set the agent git identity:
+```bash
+git config user.name "AI Agent (kolchurin.dev)"
+git config user.email "ai+agent@kolchurin.dev"
+```
+
+Or override per-commit:
+```bash
+git -c user.name="AI Agent (kolchurin.dev)" -c user.email="ai+agent@kolchurin.dev" commit -m "msg"
+```
+
+**Restore human identity after agent session** (if changed via `git config`):
+```bash
+git config --unset user.name
+git config --unset user.email
+```
+
+The `.gitconfig-agent` file at project root holds the agent identity as fallback.
+
+### Branch Naming (AI Agent)
+
+#### Conventional repo (no worktree)
+
+Prefix AI agent branches with `ai/`:
+```
+ai/feature/add-blog-posts
+ai/fix/memory-leak
+ai/chore/update-deps
+```
+
+#### Worktree repo (MANDATORY override)
+
+Detect first:
+```bash
+git worktree list | grep -Fq "$(pwd)" && echo "worktree" || echo "conventional"
+```
+
+If output is `worktree`, agents MUST:
+- use the branch already attached to the current worktree
+- keep branch name equal to worktree directory name
+- NEVER run `git checkout -b` inside that worktree
+- if a new PR branch is needed, create a new worktree from `main`:
+  ```bash
+  git worktree add ../<branch-name> -b <branch-name> main
+  ```
+
+### Pull Request Creation (AI Agent, MANDATORY)
+
+All AI-created PRs must satisfy ALL rules below.
+
+1. **PR title prefix** — must start with `ai: `
+   ```
+   ai: feat(terminal): add route navigation
+   ai: fix: resolve memory leak
+   ```
+
+2. **PR body watermark** — append at the end:
+   ```
+   ---
+   🤖 Watermark: ai-generated
+   Signed-off-by: AI Agent <ai+agent@kolchurin.dev>
+   ```
+
+3. **Label** — if `ai-generated` label exists, add it:
+   ```bash
+   gh pr edit <number> --add-label "ai-generated"
+   ```
+
+4. **Use `--body-file`, never inline markdown with backticks**
+
+   This avoids shell command substitution corrupting PR bodies.
+
+   Required pattern:
+   ```bash
+   cat > /tmp/pr-body.md <<'EOF'
+   ## Summary
+   - ...
+
+   ## Validation
+   - `just frontend-test`
+   - `just frontend-test-e2e`
+
+   ---
+   🤖 Watermark: ai-generated
+   Signed-off-by: AI Agent <ai+agent@kolchurin.dev>
+   EOF
+
+   gh pr create --base main --head <branch> \
+     --title "ai: <type>: <summary>" \
+     --body-file /tmp/pr-body.md
+   ```
+
+5. **Post-create verification**
+   ```bash
+   gh pr view <number> --json title,body,headRefName,baseRefName,url
+   ```
+
+If any rule is missed, close and recreate the PR correctly.
+
+### Finding AI PRs
+
+```bash
+gh pr list --search "Watermark: ai-generated"
+gh pr merge <number> --merge
+```
+
+## Sub-Agent Configuration
+
+Specialized agent roles stored in `agents/` directory:
+
+| File | Purpose |
+|------|---------|
+| `agents/AGENTS.md` | Index of available sub-agents |
+| `agents/delegate.md` | General-purpose delegate with fetch-from-main workflow |
+
+**Delegation workflow**: When main agent delegates to sub-agent, the sub-agent must:
+1. Fetch latest config from `main` branch: `git fetch origin main && git show main:agents/<file>.md`
+2. Apply those conventions for commits/PRs
+3. Execute task
+
 ## General context
 - Current year is 2026. Use this for any web search

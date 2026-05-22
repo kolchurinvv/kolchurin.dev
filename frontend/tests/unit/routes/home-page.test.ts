@@ -14,6 +14,16 @@ describe("home page", () => {
     expect(screen.getByRole("heading", { name: "Certifications" })).toBeInTheDocument()
   })
 
+  test("renders linkedin link in contact section", () => {
+    render(HomePage)
+
+    const linkedinLink = screen.getByRole("link", { name: /linkedin/i })
+    expect(linkedinLink).toBeInTheDocument()
+    expect(linkedinLink).toHaveAttribute("href", "https://www.linkedin.com/in/vladimir-kolchurin/")
+    expect(linkedinLink).toHaveAttribute("target", "_blank")
+    expect(linkedinLink).toHaveAttribute("rel", "noopener")
+  })
+
   test("opens and closes certificate modal", async () => {
     render(HomePage)
 

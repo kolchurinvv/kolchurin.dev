@@ -9,11 +9,11 @@ export default defineConfig({
     },
     conditions: ["browser"],
   },
-  server: { allowedHosts: [".ngrok-free.app"] },
+  server: { allowedHosts: ["kolchurin.dev"] },
   test: {
     environment: "jsdom",
     setupFiles: ["./vitest.setup.ts"],
-    include: ["tests/unit/**/*.{test,spec}.{js,ts}"],
+    include: ["src/**/*.{test,spec}.{js,ts}", "tests/unit/**/*.{test,spec}.{js,ts}"],
     css: true,
     coverage: {
       provider: "v8",
