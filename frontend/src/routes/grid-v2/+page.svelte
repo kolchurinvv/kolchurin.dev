@@ -7,11 +7,12 @@
 
   let showPdf = $state(false);
 
+  type SectionHeight = "small" | "medium" | "large" | "xlarge";
+
   interface Section {
     id: string;
     name: string;
     priority: number;
-    height: "small" | "medium" | "large" | "xlarge";
     content:
       | "header"
       | "terminal"
@@ -28,61 +29,73 @@
       id: "header",
       name: "Header",
       priority: 4,
-      height: "medium",
       content: "header",
     },
     {
       id: "terminal",
       name: "Terminal",
       priority: 3,
-      height: "medium",
       content: "terminal",
     },
     {
       id: "about",
       name: "About",
       priority: 5,
-      height: "medium",
       content: "about",
     },
     {
       id: "skills",
       name: "Skills",
       priority: 6,
-      height: "medium",
       content: "skills",
     },
     {
       id: "experience",
       name: "Experience",
       priority: 10,
-      height: "xlarge",
       content: "experience",
     },
     {
       id: "projects",
       name: "Projects",
       priority: 2,
-      height: "large",
       content: "projects",
     },
     {
       id: "certs",
       name: "Certifications",
       priority: 1,
-      height: "small",
       content: "certs",
     },
     {
       id: "footer",
       name: "Footer",
       priority: 1,
-      height: "small",
       content: "footer",
     },
   ]);
 
   let columnCount = $state(3);
+
+  function getSectionHeight(priority: number): SectionHeight {
+    if (priority >= 9) {
+      return "xlarge";
+    }
+
+    if (priority >= 6) {
+      return "large";
+    }
+
+    if (priority >= 3) {
+      return "medium";
+    }
+
+    return "small";
+  }
+
+  function getOrderedSections(): Section[] {
+    return [...sections].sort((a, b) => b.priority - a.priority);
+  }
 
   onMount(() => {
     function updateColumns() {
@@ -105,8 +118,12 @@
 
 <div class="masonry-layout" style="--cols: {columnCount};">
   <div class="masonry-grid">
-    {#each sections as section}
-      <div class="masonry-item" data-height={section.height}>
+    {#each getOrderedSections() as section}
+      <div
+        class="masonry-item"
+        data-height={getSectionHeight(section.priority)}
+        data-priority={section.priority}
+      >
         <div class="masonry-cell">
           {#if section.content === "header"}
             <div class="cell-content header-cell">
@@ -930,7 +947,7 @@
     border: none;
   }
 
-  @media (max-width: 900px) {
+  @media (max-width: 1100px) {
     .masonry-layout {
       padding: 0.5rem;
       padding-top: 4.5rem;

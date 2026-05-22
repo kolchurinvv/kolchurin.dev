@@ -376,6 +376,7 @@ Navigation:
   cd /          - Go to home page
   cd /grid      - Go to grid view (shows dragon warning)
   cd /grid-v2   - Go to grid-v2 view (shows dragon warning)
+  cd /grid-v4   - Go to grid-v4 view (shows dragon warning)
 
 Try: cat skills.json, cat experience.json, about.txt`,
       })
