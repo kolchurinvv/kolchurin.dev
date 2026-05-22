@@ -13,6 +13,10 @@
       "Bash(git fetch *)",
       "Bash(git -C /home/_liminor/Dev_Projects/kolchurin.dev/masonry-layout add frontend/src/routes/grid-v4/+page.svelte frontend/src/lib/components/MasonryLayout.svelte frontend/src/lib/components/Tile.svelte frontend/src/lib/layout frontend/tests/e2e/no-scroll.spec.ts frontend/tests/unit/lib/layout CLAUDE.md docs/the-way-masonry-layout-should-look.jpg .claude/settings.local.json)",
       "Bash(git -C /home/_liminor/Dev_Projects/kolchurin.dev/masonry-layout status --short)",
+      "WebFetch(domain:pagespeed.web.dev)",
+      "Bash(xargs ls -lh)",
+      "Bash(git log *)",
+      "Bash(git stash *)",
       "Bash(git add *)",
       "Bash(git rebase *)",
       "Bash(echo \"---EXIT: $?---\")"
