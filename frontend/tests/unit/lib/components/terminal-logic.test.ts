@@ -15,6 +15,7 @@ const routes: RouteInfo[] = [
   { path: "/", requiresWarning: false, description: "Home page" },
   { path: "/grid", requiresWarning: true, description: "Grid layout view" },
   { path: "/grid-v2", requiresWarning: true, description: "Masonry layout view" },
+  { path: "/grid-v4", requiresWarning: true, description: "Priority-anchored layout" },
 ]
 
 const terminalData: TerminalData = {
@@ -69,7 +70,7 @@ describe("terminal-logic", () => {
 
     it("suggests all routes when cd has no argument", () => {
       const suggestions = getSuggestions("cd ", "~", terminalData.directories, undefined, routes)
-      expect(suggestions).toEqual(["~", "grid", "grid-v2"])
+      expect(suggestions).toEqual(["~", "grid", "grid-v2", "grid-v4"])
     })
 
     it("filters suggestions case-insensitively for routes", () => {
@@ -283,6 +284,14 @@ describe("terminal-logic", () => {
       expect(result.effect?.type).toBe("warningConfirm")
       if (result.effect?.type === "warningConfirm") {
         expect(result.effect.route.path).toBe("/grid-v2")
+      }
+    })
+
+    it("shows warning for /grid-v4 route", () => {
+      const result = executeCommand(makeState(), "cd /grid-v4", terminalData)
+      expect(result.effect?.type).toBe("warningConfirm")
+      if (result.effect?.type === "warningConfirm") {
+        expect(result.effect.route.path).toBe("/grid-v4")
       }
     })
 
