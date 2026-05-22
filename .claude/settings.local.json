@@ -12,7 +12,10 @@
       "Bash(python3 scripts/dump-opencode-session.py ses_28cd32842ffeUnwwRGrzXoxO7s -o /tmp/guestbook-session.md)",
       "Bash(git fetch *)",
       "Bash(git -C /home/_liminor/Dev_Projects/kolchurin.dev/masonry-layout add frontend/src/routes/grid-v4/+page.svelte frontend/src/lib/components/MasonryLayout.svelte frontend/src/lib/components/Tile.svelte frontend/src/lib/layout frontend/tests/e2e/no-scroll.spec.ts frontend/tests/unit/lib/layout CLAUDE.md docs/the-way-masonry-layout-should-look.jpg .claude/settings.local.json)",
-      "Bash(git -C /home/_liminor/Dev_Projects/kolchurin.dev/masonry-layout status --short)"
+      "Bash(git -C /home/_liminor/Dev_Projects/kolchurin.dev/masonry-layout status --short)",
+      "Bash(git add *)",
+      "Bash(git rebase *)",
+      "Bash(echo \"---EXIT: $?---\")"
     ]
   }
 }
