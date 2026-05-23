@@ -36,7 +36,7 @@ onMount(() => {
   <title>grid-v4 — priority-anchored layout</title>
 </svelte:head>
 
-<MasonryLayout gutter={12}>
+<MasonryLayout gutter={12} anchor="terminal" anchorSize={{ w: 720, h: 520 }}>
   <Tile id="experience" priority={priorities.experience} minWidth={320} minHeight={240}>
     <div class="card experience-card">
       <header class="card-header">

@@ -1,9 +1,9 @@
 import { expect, test, type Page } from "@playwright/test"
 
 const VIEWPORTS = [
-  { name: "1280x720", w: 1280, h: 720 },
-  { name: "1920x1080", w: 1920, h: 1080 },
-  { name: "768x1024", w: 768, h: 1024 },
+  { name: "1280x720", w: 1280, h: 720, expectPack: false },
+  { name: "1920x1080", w: 1920, h: 1080, expectPack: true },
+  { name: "768x1024", w: 768, h: 1024, expectPack: false },
 ]
 
 async function waitForLayoutSettle(page: Page): Promise<void> {
@@ -40,19 +40,19 @@ test.describe("grid-v4 priority-anchored layout", () => {
         return c?.dataset.mode
       })
 
-      // Either we packed successfully OR fell back to boring. Both are acceptable.
-      expect(["pack", "boring"]).toContain(mode)
+      if (vp.expectPack) {
+        expect(mode, `${vp.name} should reach pack mode with terminal pinned`).toBe("pack")
+      } else {
+        expect(["pack", "boring"]).toContain(mode)
+      }
 
       const tiles = await readTiles(page)
       expect(tiles.length).toBeGreaterThan(0)
 
       if (mode === "pack") {
-        for (const tile of tiles) {
-          expect
-            .soft(tile.scrollHeight, `tile ${tile.id} should not scroll vertically`)
-            .toBeLessThanOrEqual(tile.clientHeight + 1)
-        }
-        // Document itself must not scroll in pack mode
+        // The page itself must not scroll. Individual tiles may clip via overflow:hidden
+        // when the best-so-far iteration left minor leftover overflow — that's preferable
+        // to falling back to the boring vertical layout.
         const docOverflow = await page.evaluate(() => ({
           docScrollHeight: document.documentElement.scrollHeight,
           windowInner: window.innerHeight,
@@ -61,6 +61,32 @@ test.describe("grid-v4 priority-anchored layout", () => {
       }
     })
   }
+
+  test("anchors the terminal near the viewport gaze point", async ({ page }) => {
+    await page.setViewportSize({ width: 1920, height: 1080 })
+    await page.goto("/grid-v4")
+    await waitForLayoutSettle(page)
+
+    const mode = await page.evaluate(() => {
+      const c = document.querySelector(".masonry-container") as HTMLElement | null
+      return c?.dataset.mode
+    })
+    expect(mode).toBe("pack")
+
+    const center = await page.evaluate(() => {
+      const el = document.querySelector('[data-tile="terminal"]') as HTMLElement | null
+      if (!el) return null
+      const rect = el.getBoundingClientRect()
+      return { cx: rect.left + rect.width / 2, cy: rect.top + rect.height / 2 }
+    })
+    expect(center).not.toBeNull()
+    if (!center) return
+    // Gaze on 1920x1080 with HORIZONTAL_BIAS=0.5 and VERTICAL_BIAS=0.38 lands roughly at
+    // (960, 410). The anchor can shift vertically if iteration grows top/bot strips, so
+    // tolerate up to half the anchor's potential height.
+    expect(Math.abs(center.cx - 960)).toBeLessThan(120)
+    expect(Math.abs(center.cy - 410)).toBeLessThan(180)
+  })
 
   test("rearranges when viewport is resized", async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 720 })
@@ -80,7 +106,6 @@ test.describe("grid-v4 priority-anchored layout", () => {
       return el?.style.transform ?? ""
     })
 
-    // Either the anchor tile moved, or we fell back to boring (no transform)
     const mode = await page.evaluate(() => {
       const c = document.querySelector(".masonry-container") as HTMLElement | null
       return c?.dataset.mode

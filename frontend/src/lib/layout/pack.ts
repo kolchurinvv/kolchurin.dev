@@ -1,18 +1,27 @@
-import type { PackRequest, PackResponse, Position, TileMeta } from "./types"
+import type {
+  AnchorSize,
+  PackRequest,
+  PackResponse,
+  Position,
+  StripLabel,
+  TileMeta,
+} from "./types"
 
-const PRIORITY_EXPONENT = 1.4
 const MIN_TILE_FALLBACK_AREA = 100 * 100
-const MAX_ANCHOR_AREA_RATIO = 0.5
+const MAX_ANCHOR_AREA_RATIO = 0.4
 const MIN_ANCHOR_AREA_RATIO = 0.22
-const MAX_ANCHOR_DIMENSION_RATIO = 0.7
+const MAX_ANCHOR_DIMENSION_RATIO = 0.6
+const MIN_ANCHOR_DIMENSION_RATIO = 0.28
 
 type Strip = {
-  label: "top" | "bot" | "left" | "right"
+  label: StripLabel
   x: number
   y: number
   w: number
   h: number
 }
+
+type AnchorRect = { ax: number; ay: number; aw: number; ah: number }
 
 function clamp(value: number, lo: number, hi: number): number {
   if (lo > hi) return lo
@@ -25,7 +34,7 @@ function tileArea(t: TileMeta): number {
 
 function tileWeight(t: TileMeta): number {
   const priority = Math.max(t.priority, 0.0001)
-  return priority ** PRIORITY_EXPONENT * tileArea(t)
+  return priority * Math.sqrt(tileArea(t))
 }
 
 function compareForOrder(a: TileMeta, b: TileMeta): number {
@@ -47,8 +56,19 @@ function applyOverflowHints(tiles: TileMeta[], overflowingIds: string[] | undefi
   })
 }
 
-function packSingleTile(tile: TileMeta, w: number, h: number): Position {
-  return { id: tile.id, x: 0, y: 0, w, h }
+function pickAnchor(
+  tiles: TileMeta[],
+  anchorId: string | undefined
+): { anchor: TileMeta; rest: TileMeta[] } {
+  if (anchorId) {
+    const idx = tiles.findIndex((t) => t.id === anchorId)
+    if (idx >= 0) {
+      const anchor = tiles[idx]
+      const rest = tiles.slice(0, idx).concat(tiles.slice(idx + 1))
+      return { anchor, rest }
+    }
+  }
+  return { anchor: tiles[0], rest: tiles.slice(1) }
 }
 
 function computeAnchorRect(
@@ -58,27 +78,36 @@ function computeAnchorRect(
   H: number,
   gazeX: number,
   gazeY: number,
-  gutter: number
-): { ax: number; ay: number; aw: number; ah: number } {
-  const anchorW = tileWeight(anchor)
-  const totalW = rest.reduce((acc, t) => acc + tileWeight(t), anchorW)
-  const share = totalW > 0 ? anchorW / totalW : 1
-  const viewportArea = W * H
-  const minArea = Math.max(
-    anchor.minW * anchor.minH,
-    tileArea(anchor) * 0.5,
-    viewportArea * MIN_ANCHOR_AREA_RATIO
-  )
-  const maxArea = viewportArea * MAX_ANCHOR_AREA_RATIO
-  const targetArea = clamp(viewportArea * share, minArea, maxArea)
+  gutter: number,
+  explicitSize: AnchorSize | undefined
+): AnchorRect {
+  let aw: number
+  let ah: number
 
-  const naturalAspect =
-    anchor.naturalW > 0 && anchor.naturalH > 0 ? anchor.naturalW / anchor.naturalH : W / H
-  let aw = Math.sqrt(targetArea * naturalAspect)
-  let ah = Math.sqrt(targetArea / naturalAspect)
+  if (explicitSize) {
+    aw = clamp(explicitSize.w, anchor.minW, Math.max(anchor.minW, W * MAX_ANCHOR_DIMENSION_RATIO))
+    ah = clamp(explicitSize.h, anchor.minH, Math.max(anchor.minH, H * MAX_ANCHOR_DIMENSION_RATIO))
+  } else {
+    const anchorW = tileWeight(anchor)
+    const totalW = rest.reduce((acc, t) => acc + tileWeight(t), anchorW)
+    const share = totalW > 0 ? anchorW / totalW : 1
+    const viewportArea = W * H
+    const minArea = Math.max(
+      anchor.minW * anchor.minH,
+      tileArea(anchor) * 0.5,
+      viewportArea * MIN_ANCHOR_AREA_RATIO
+    )
+    const maxArea = viewportArea * MAX_ANCHOR_AREA_RATIO
+    const targetArea = clamp(viewportArea * share, minArea, maxArea)
 
-  aw = clamp(aw, anchor.minW, Math.max(anchor.minW, W * MAX_ANCHOR_DIMENSION_RATIO))
-  ah = clamp(ah, anchor.minH, Math.max(anchor.minH, H * MAX_ANCHOR_DIMENSION_RATIO))
+    const naturalAspect =
+      anchor.naturalW > 0 && anchor.naturalH > 0 ? anchor.naturalW / anchor.naturalH : W / H
+    aw = Math.sqrt(targetArea * naturalAspect)
+    ah = Math.sqrt(targetArea / naturalAspect)
+
+    aw = clamp(aw, anchor.minW, Math.max(anchor.minW, W * MAX_ANCHOR_DIMENSION_RATIO))
+    ah = clamp(ah, anchor.minH, Math.max(anchor.minH, H * MAX_ANCHOR_DIMENSION_RATIO))
+  }
 
   const ax = clamp(gazeX - aw / 2, 0, Math.max(0, W - aw))
   const ay = clamp(gazeY - ah / 2, 0, Math.max(0, H - ah))
@@ -102,23 +131,44 @@ function candidateStrips(
   return strips
 }
 
-const MIN_ANCHOR_DIMENSION_RATIO = 0.35
+function absorbDroppedStrips(
+  anchor: AnchorRect,
+  dropped: Strip[],
+  W: number,
+  H: number
+): AnchorRect {
+  let { ax, ay, aw, ah } = anchor
+  for (const d of dropped) {
+    if (d.label === "top") {
+      ah = ah + ay
+      ay = 0
+    } else if (d.label === "bot") {
+      ah = H - ay
+    } else if (d.label === "left") {
+      aw = aw + ax
+      ax = 0
+    } else if (d.label === "right") {
+      aw = W - ax
+    }
+  }
+  return { ax, ay, aw, ah }
+}
 
 function resizeForOverflow(
   W: number,
   H: number,
-  anchor: { ax: number; ay: number; aw: number; ah: number },
+  anchor: AnchorRect,
   strips: Strip[],
   stripTiles: TileMeta[][]
-): { anchor: { ax: number; ay: number; aw: number; ah: number }; strips: Strip[]; stripTiles: TileMeta[][] } {
+): { anchor: AnchorRect; strips: Strip[]; stripTiles: TileMeta[][] } {
   let { ax, ay, aw, ah } = anchor
 
-  const labelTiles: Record<string, TileMeta[]> = {}
+  const labelTiles: Partial<Record<StripLabel, TileMeta[]>> = {}
   for (let i = 0; i < strips.length; i++) {
     labelTiles[strips[i].label] = stripTiles[i]
   }
 
-  function maxRequired(label: string): number {
+  function maxRequired(label: StripLabel): number {
     const list = labelTiles[label]
     if (!list) return 0
     return list.reduce((acc, t) => Math.max(acc, t.requiredH ?? 0), 0)
@@ -131,8 +181,6 @@ function resizeForOverflow(
   const minAnchorH = Math.max(40, H * MIN_ANCHOR_DIMENSION_RATIO)
 
   const topH = ay
-  const botH = H - ay - ah
-
   if (topReq > topH) {
     const need = topReq - topH
     const available = Math.max(0, ah - minAnchorH)
@@ -140,7 +188,7 @@ function resizeForOverflow(
     ay += take
     ah -= take
   }
-  if (botReq > botH) {
+  if (botReq > H - ay - ah) {
     const need = botReq - (H - ay - ah)
     const available = Math.max(0, ah - minAnchorH)
     const take = Math.min(need, available)
@@ -166,29 +214,6 @@ function resizeForOverflow(
   return { anchor: { ax, ay, aw, ah }, strips: newStrips, stripTiles: newStripTiles }
 }
 
-function absorbDroppedStrips(
-  anchor: { ax: number; ay: number; aw: number; ah: number },
-  dropped: Strip[],
-  W: number,
-  H: number
-): { ax: number; ay: number; aw: number; ah: number } {
-  let { ax, ay, aw, ah } = anchor
-  for (const d of dropped) {
-    if (d.label === "top") {
-      ah = ah + ay
-      ay = 0
-    } else if (d.label === "bot") {
-      ah = H - ay
-    } else if (d.label === "left") {
-      aw = aw + ax
-      ax = 0
-    } else if (d.label === "right") {
-      aw = W - ax
-    }
-  }
-  return { ax, ay, aw, ah }
-}
-
 function assignTilesToStrips(strips: Strip[], remaining: TileMeta[]): TileMeta[][] {
   const totalArea = strips.reduce((acc, s) => acc + s.w * s.h, 0) || 1
   const totalWeight = remaining.reduce((acc, t) => acc + tileWeight(t), 0) || 1
@@ -205,7 +230,6 @@ function assignTilesToStrips(strips: Strip[], remaining: TileMeta[]): TileMeta[]
     let bestIdx = 0
 
     if (requiredH > 0) {
-      // Overflow tile: prefer the tallest strip; resize logic can grow that band.
       let bestH = -Infinity
       let bestSlack = -Infinity
       for (let i = 0; i < buckets.length; i++) {
@@ -234,6 +258,34 @@ function assignTilesToStrips(strips: Strip[], remaining: TileMeta[]): TileMeta[]
   return buckets.map((b) => b.tiles)
 }
 
+function applyPinnedAssignment(
+  strips: Strip[],
+  remaining: TileMeta[],
+  pinned: Record<string, StripLabel>
+): TileMeta[][] {
+  const buckets: Record<StripLabel, TileMeta[]> = { top: [], bot: [], left: [], right: [] }
+  const orphans: TileMeta[] = []
+  const available = new Set<StripLabel>(strips.map((s) => s.label))
+
+  for (const tile of remaining) {
+    const target = pinned[tile.id]
+    if (target && available.has(target)) {
+      buckets[target].push(tile)
+    } else {
+      orphans.push(tile)
+    }
+  }
+
+  if (orphans.length > 0) {
+    const fallback = assignTilesToStrips(strips, orphans)
+    for (let i = 0; i < strips.length; i++) {
+      buckets[strips[i].label].push(...fallback[i])
+    }
+  }
+
+  return strips.map((s) => buckets[s.label])
+}
+
 function allocateAlongAxis(
   total: number,
   tiles: TileMeta[],
@@ -250,18 +302,15 @@ function allocateAlongAxis(
   const sumWeight = weights.reduce((a, b) => a + b, 0) || 1
 
   if (sumNatural <= total) {
-    // All tiles fit at natural sizes. Distribute remaining by weight.
     const remainder = total - sumNatural
     return tiles.map((_, i) => naturals[i] + (remainder * weights[i]) / sumWeight)
   }
   if (sumMin <= total) {
-    // Natural exceeds total but mins fit. Allocate min + proportional share of slack.
     const slack = total - sumMin
     const naturalSlack = naturals.map((n, i) => Math.max(0, n - mins[i]))
     const sumNaturalSlack = naturalSlack.reduce((a, b) => a + b, 0) || 1
     return tiles.map((_, i) => mins[i] + (slack * naturalSlack[i]) / sumNaturalSlack)
   }
-  // Even mins don't fit: scale mins proportionally
   return mins.map((m) => (m * total) / sumMin)
 }
 
@@ -286,7 +335,6 @@ function packStrip(strip: Strip, tiles: TileMeta[], gutter: number): Position[] 
   const cutHorizontally = strip.w >= strip.h
 
   if (cutHorizontally) {
-    // Wide strip: cut into columns. Use width as the allocation axis.
     const widths = allocateAlongAxis(
       strip.w,
       tiles,
@@ -307,7 +355,6 @@ function packStrip(strip: Strip, tiles: TileMeta[], gutter: number): Position[] 
       cursor += w
     }
   } else {
-    // Tall strip: cut into rows. Allocate height to each tile.
     const heights = allocateAlongAxis(
       strip.h,
       tiles,
@@ -333,7 +380,7 @@ function packStrip(strip: Strip, tiles: TileMeta[], gutter: number): Position[] 
 }
 
 export function packAnchored(req: PackRequest): PackResponse {
-  if (req.tiles.length === 0) return { mode: "pack", positions: [] }
+  if (req.tiles.length === 0) return { mode: "pack", positions: [], assignment: {} }
 
   const tiles = applyOverflowHints(req.tiles, req.overflowingIds).slice().sort(compareForOrder)
   const W = req.viewport.w
@@ -342,20 +389,26 @@ export function packAnchored(req: PackRequest): PackResponse {
   const half = gutter / 2
 
   if (tiles.length === 1) {
+    const t = tiles[0]
     return {
       mode: "pack",
-      positions: [packSingleTile(tiles[0], W - gutter, H - gutter)].map((p) => ({
-        ...p,
-        x: half,
-        y: half,
-      })),
+      positions: [{ id: t.id, x: half, y: half, w: W - gutter, h: H - gutter }],
+      assignment: {},
     }
   }
 
-  const anchor = tiles[0]
-  const rest = tiles.slice(1)
+  const { anchor, rest } = pickAnchor(tiles, req.anchorId)
 
-  let anchorRect = computeAnchorRect(anchor, rest, W, H, req.gaze.x, req.gaze.y, gutter)
+  let anchorRect = computeAnchorRect(
+    anchor,
+    rest,
+    W,
+    H,
+    req.gaze.x,
+    req.gaze.y,
+    gutter,
+    req.anchorSize
+  )
   let strips = candidateStrips(W, H, anchorRect.ax, anchorRect.ay, anchorRect.aw, anchorRect.ah)
 
   if (rest.length < strips.length) {
@@ -366,7 +419,9 @@ export function packAnchored(req: PackRequest): PackResponse {
     strips = chosen
   }
 
-  let stripTiles = assignTilesToStrips(strips, rest)
+  let stripTiles = req.pinnedAssignment
+    ? applyPinnedAssignment(strips, rest, req.pinnedAssignment)
+    : assignTilesToStrips(strips, rest)
 
   if (req.overflowingIds && req.overflowingIds.length > 0) {
     const resized = resizeForOverflow(W, H, anchorRect, strips, stripTiles)
@@ -385,10 +440,12 @@ export function packAnchored(req: PackRequest): PackResponse {
     },
   ]
 
+  const assignment: Record<string, StripLabel> = {}
   for (let i = 0; i < strips.length; i++) {
-    positions.push(...packStrip(strips[i], stripTiles[i], gutter))
+    const strip = strips[i]
+    for (const t of stripTiles[i]) assignment[t.id] = strip.label
+    positions.push(...packStrip(strip, stripTiles[i], gutter))
   }
 
-  return { mode: "pack", positions }
+  return { mode: "pack", positions, assignment }
 }
-

@@ -4,6 +4,7 @@ import type {
   PackRequest,
   PackResponse,
   Position,
+  StripLabel,
   TileMeta,
 } from "../../../../src/lib/layout/types"
 
@@ -45,7 +46,10 @@ function rectsOverlap(a: Position, b: Position): boolean {
   )
 }
 
-function expectPack(res: PackResponse): { positions: Position[] } {
+function expectPack(res: PackResponse): {
+  positions: Position[]
+  assignment: Record<string, StripLabel>
+} {
   expect(res.mode).toBe("pack")
   if (res.mode !== "pack") throw new Error("not pack")
   return res
@@ -183,5 +187,89 @@ describe("packAnchored", () => {
     // The two rectangles should together cover the viewport
     const total = res.positions.reduce((acc, p) => acc + p.w * p.h, 0)
     expect(total).toBeCloseTo(1280 * 720, -2)
+  })
+
+  it("returns assignment for non-anchor tiles", () => {
+    const res = expectPack(packAnchored(makeRequest()))
+    // anchor (experience) should not be in assignment; the other 7 should be
+    expect(Object.keys(res.assignment)).toHaveLength(SAMPLE.length - 1)
+    expect(res.assignment).not.toHaveProperty("experience")
+    for (const id of ["skills", "about", "terminal", "projects", "header", "certs", "footer"]) {
+      expect(["top", "bot", "left", "right"]).toContain(res.assignment[id])
+    }
+  })
+
+  it("uses anchorId to override the priority-based anchor", () => {
+    const res = expectPack(
+      packAnchored(
+        makeRequest({
+          anchorId: "footer",
+          anchorSize: { w: 600, h: 400 },
+        })
+      )
+    )
+    const footer = res.positions.find((p) => p.id === "footer")
+    expect(footer).toBeDefined()
+    if (!footer) return
+    expect(footer.w).toBe(600)
+    expect(footer.h).toBe(400)
+    // footer's center should be near the gaze point
+    const cx = footer.x + footer.w / 2
+    const cy = footer.y + footer.h / 2
+    expect(Math.abs(cx - 640)).toBeLessThan(1)
+    expect(Math.abs(cy - 274)).toBeLessThan(1)
+  })
+
+  it("uses anchorSize verbatim regardless of weight share", () => {
+    const res = expectPack(
+      packAnchored(makeRequest({ anchorId: "experience", anchorSize: { w: 500, h: 300 } }))
+    )
+    const anchor = res.positions.find((p) => p.id === "experience")
+    expect(anchor).toBeDefined()
+    if (!anchor) return
+    expect(anchor.w).toBe(500)
+    expect(anchor.h).toBe(300)
+  })
+
+  it("keeps tile→strip mapping stable when pinnedAssignment is passed back", () => {
+    const first = expectPack(packAnchored(makeRequest()))
+    const second = expectPack(
+      packAnchored(
+        makeRequest({
+          pinnedAssignment: { ...first.assignment },
+          overflowingIds: ["about"],
+          tiles: SAMPLE.map((t) => (t.id === "about" ? { ...t, requiredH: 400 } : t)),
+        })
+      )
+    )
+    // Every non-anchor tile lands in the same strip across the two packs
+    for (const id of Object.keys(first.assignment)) {
+      expect(second.assignment[id]).toBe(first.assignment[id])
+    }
+  })
+
+  it("falls back to weight-based assignment for tiles missing from pinnedAssignment", () => {
+    const partial: Record<string, StripLabel> = {
+      skills: "top",
+      about: "bot",
+    }
+    const res = expectPack(packAnchored(makeRequest({ pinnedAssignment: partial })))
+    expect(res.assignment.skills).toBe("top")
+    expect(res.assignment.about).toBe("bot")
+    // Unpinned tiles are still placed somewhere
+    for (const id of ["terminal", "projects", "header", "certs", "footer"]) {
+      expect(["top", "bot", "left", "right"]).toContain(res.assignment[id])
+    }
+  })
+
+  it("keeps the anchor's area share modest with the flatter weight", () => {
+    const W = 1920
+    const H = 1080
+    const res = expectPack(packAnchored(makeRequest({ viewport: { w: W, h: H } })))
+    const anchor = res.positions.find((p) => p.id === "experience")
+    expect(anchor).toBeDefined()
+    if (!anchor) return
+    const share = (anchor.w * anchor.h) / (W * H)
+    expect(share).toBeLessThanOrEqual(0.4 + 0.01)
   })
 })

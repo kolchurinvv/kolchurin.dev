@@ -4,20 +4,34 @@ import { provideRegistry } from "$lib/layout/registry.svelte"
 import { computeGazePoint } from "$lib/layout/gaze"
 import { packAnchored } from "$lib/layout/pack"
 import PackWorker from "$lib/layout/pack.worker?worker"
-import type { GazePoint, PackRequest, PackResponse, TileMeta, Viewport } from "$lib/layout/types"
+import type {
+  AnchorSize,
+  GazePoint,
+  PackRequest,
+  PackResponse,
+  Position,
+  StripLabel,
+  TileMeta,
+  Viewport,
+} from "$lib/layout/types"
 
 type Props = {
   children: Snippet
   gutter?: number
   animate?: boolean
+  /** Tile id to anchor at the gaze point. Defaults to highest-priority tile. */
+  anchor?: string
+  /** Explicit anchor size; skips weight-based sizing. */
+  anchorSize?: AnchorSize
 }
 
-let { children, gutter = 16, animate = true }: Props = $props()
+let { children, gutter = 16, animate = true, anchor, anchorSize }: Props = $props()
 
 const MAX_ITERATIONS = 3
 const RESIZE_DEBOUNCE_MS = 120
 const WORKER_IDLE_MS = 30_000
 const OVERFLOW_CHECK_DELAY_MS = 360
+const BORING_FALLBACK_TILE_RATIO = 0.5
 const DEFAULT_VIEWPORT: Viewport = { w: 1280, h: 720 }
 const DEFAULT_GAZE: GazePoint = { x: 640, y: 274 }
 
@@ -34,6 +48,11 @@ let idleTimer: ReturnType<typeof setTimeout> | null = null
 let packScheduled = false
 let lastVersion = -1
 let prefersReducedMotion = false
+
+let lastAssignment: Record<string, StripLabel> | null = null
+let bestPositions: Position[] | null = null
+let bestOverflowCount = Number.POSITIVE_INFINITY
+let bestOverflowMagnitude = Number.POSITIVE_INFINITY
 
 function snapshotTiles(overflowing: { id: string; requiredH: number }[]): TileMeta[] {
   const overflowMap = new Map(overflowing.map((o) => [o.id, o.requiredH]))
@@ -81,12 +100,20 @@ function scheduleIdle(): void {
   }, WORKER_IDLE_MS)
 }
 
+function resetBest(): void {
+  bestPositions = null
+  bestOverflowCount = Number.POSITIVE_INFINITY
+  bestOverflowMagnitude = Number.POSITIVE_INFINITY
+  lastAssignment = null
+}
+
 function handleResponse(response: PackResponse): void {
   if (response.mode === "boring") {
     registry.setPositions([], "boring")
     ready = true
     return
   }
+  lastAssignment = response.assignment
   registry.setPositions(response.positions, "pack")
   if (typeof window === "undefined") {
     ready = true
@@ -112,6 +139,11 @@ function requestPack(overflowing: { id: string; requiredH: number }[]): void {
     tiles,
     overflowingIds: overflowing.map((o) => o.id),
   }
+  if (anchor) request.anchorId = anchor
+  if (anchorSize) request.anchorSize = { w: anchorSize.w, h: anchorSize.h }
+  if (iteration > 0 && lastAssignment) {
+    request.pinnedAssignment = { ...lastAssignment }
+  }
 
   const w = ensureWorker()
   if (w) {
@@ -122,20 +154,52 @@ function requestPack(overflowing: { id: string; requiredH: number }[]): void {
   }
 }
 
+function applyBestOrBoring(): void {
+  const tileCount = registry.list().length
+  if (tileCount === 0) return
+  const threshold = tileCount * BORING_FALLBACK_TILE_RATIO
+  if (bestOverflowCount > threshold) {
+    registry.setPositions([], "boring")
+    return
+  }
+  if (bestPositions) {
+    registry.setPositions(bestPositions, "pack")
+  }
+}
+
 function checkOverflow(): void {
   if (registry.mode !== "pack") return
   const overflowing: { id: string; requiredH: number }[] = []
+  let overflowMagnitude = 0
   for (const entry of registry.list()) {
     const el = entry.el
     if (!el) continue
-    if (el.scrollHeight > el.clientHeight + 1) {
+    const overflow = el.scrollHeight - el.clientHeight
+    if (overflow > 1) {
       overflowing.push({ id: entry.id, requiredH: el.scrollHeight })
+      overflowMagnitude += overflow
     }
   }
-  if (overflowing.length === 0) return
+
+  const currentCount = overflowing.length
+  const isImprovement =
+    currentCount < bestOverflowCount ||
+    (currentCount === bestOverflowCount && overflowMagnitude < bestOverflowMagnitude)
+  if (isImprovement) {
+    bestPositions = Object.values(registry.positions).map((p) => ({ ...p }))
+    bestOverflowCount = currentCount
+    bestOverflowMagnitude = overflowMagnitude
+  }
+
+  if (currentCount === 0) return
   iteration++
   if (iteration >= MAX_ITERATIONS) {
-    registry.setPositions([], "boring")
+    applyBestOrBoring()
+    return
+  }
+  if (!isImprovement) {
+    // Iteration regressed; revert and stop.
+    applyBestOrBoring()
     return
   }
   requestPack(overflowing)
@@ -146,7 +210,10 @@ function schedulePack(reset: boolean): void {
   packScheduled = true
   queueMicrotask(() => {
     packScheduled = false
-    if (reset) iteration = 0
+    if (reset) {
+      iteration = 0
+      resetBest()
+    }
     requestPack([])
   })
 }
