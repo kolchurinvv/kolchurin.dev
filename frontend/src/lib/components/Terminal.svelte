@@ -1,6 +1,13 @@
 <script lang="ts">
 import { onMount } from "svelte"
-import { skillsJson, experienceJson, contactText, aboutText, projects } from "$lib/profile"
+import {
+  skillsJson,
+  experienceJson,
+  contactText,
+  aboutText,
+  projects,
+  currentlyBuilding,
+} from "$lib/profile"
 import {
   applySuggestion,
   cycleSuggestionIndex,
@@ -53,10 +60,18 @@ const virtualFiles: Record<string, string> = {
   "experience.json": experienceJson,
   "contact.txt": contactText,
   "projects.json": JSON.stringify(projects, null, 2),
+  "current.md": currentlyBuilding,
 }
 
 const directories: Record<string, string[]> = {
-  "~": ["skills.json", "about.txt", "experience.json", "contact.txt", "projects.json"],
+  "~": [
+    "skills.json",
+    "about.txt",
+    "experience.json",
+    "contact.txt",
+    "projects.json",
+    "current.md",
+  ],
   "~/projects": ["ai-lab", "dev-sandbox"],
   "~/projects/ai-lab": ["README.md", "docker-compose.yml"],
   "~/projects/dev-sandbox": ["README.md", "flake.nix"],

@@ -22,7 +22,9 @@
       "Bash(echo \"---EXIT: $?---\")",
       "Bash(git rev-list *)",
       "Skill(update-config)",
-      "Bash(git --no-pager log --oneline -5)"
+      "Bash(git --no-pager log --oneline -5)",
+      "Read(//home/_liminor/.claude/projects/-home--liminor-Dev-Projects-kolchurin-dev--bare/**)",
+      "Read(//home/_liminor/.claude/**)"
     ]
   }
 }
