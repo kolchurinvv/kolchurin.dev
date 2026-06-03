@@ -19,7 +19,10 @@
       "Bash(git stash *)",
       "Bash(git add *)",
       "Bash(git rebase *)",
-      "Bash(echo \"---EXIT: $?---\")"
+      "Bash(echo \"---EXIT: $?---\")",
+      "Bash(git rev-list *)",
+      "Skill(update-config)",
+      "Bash(git --no-pager log --oneline -5)"
     ]
   }
 }
