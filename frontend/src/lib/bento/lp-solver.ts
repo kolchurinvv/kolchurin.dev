@@ -39,6 +39,15 @@ const TIER_AREA_WEIGHT: Record<Tier, number> = {
   tertiary: 1.0,
   quaternary: 0.35,
 }
+// When a content-fitted prefW/prefH is available, the tile is sized to its
+// content rather than a viewport share. Tier only nudges the linear scale, so
+// the terminal still reads as primary without re-inflating light tiles.
+const TIER_PREF_SCALE: Record<Tier, number> = {
+  primary: 1.35,
+  secondary: 1.12,
+  tertiary: 1.0,
+  quaternary: 0.95,
+}
 
 export function lpSolve(
   sp: SequencePair,
@@ -58,16 +67,25 @@ export function lpSolve(
   const w = new Map<string, number>()
   const h = new Map<string, number>()
 
-  // Estimate per-tile "target area" by partitioning viewport area weighted by tier.
-  // Assume initial wall height ~= viewport h (will refine via longest-path height).
+  // Per-tile target size. Prefer the measured content box (prefW/prefH) so tiles
+  // are sized to content; fall back to a tier-weighted viewport-area share only
+  // when no measurement is available (e.g. SSR, or tests using raw inventory).
   const totalWeight = tiles.reduce((s, t) => s + TIER_AREA_WEIGHT[t.priority], 0)
   const estimatedTotalArea = W * viewport.h
   for (const t of tiles) {
-    const share = TIER_AREA_WEIGHT[t.priority] / totalWeight
-    const targetArea = estimatedTotalArea * share
-    const ideal = t.aspectRatio?.ideal ?? 1
-    let tw = Math.sqrt(targetArea * ideal)
-    let th = Math.sqrt(targetArea / ideal)
+    let tw: number
+    let th: number
+    if (t.prefW != null && t.prefH != null) {
+      const s = TIER_PREF_SCALE[t.priority]
+      tw = t.prefW * s
+      th = t.prefH * s
+    } else {
+      const share = TIER_AREA_WEIGHT[t.priority] / totalWeight
+      const targetArea = estimatedTotalArea * share
+      const ideal = t.aspectRatio?.ideal ?? 1
+      tw = Math.sqrt(targetArea * ideal)
+      th = Math.sqrt(targetArea / ideal)
+    }
     ;[tw, th] = clampToConstraints(tw, th, t)
     w.set(t.id, tw)
     h.set(t.id, th)
@@ -153,6 +171,90 @@ export function lpSolve(
   return { positions, totalHeight, feasible, violations }
 }
 
+/**
+ * Slack-absorption pass — RENDER ONLY. The longest-path solve places every tile
+ * at its target size, which leaves whitespace between neighbours (the "floating
+ * pebbles" look). This grows each tile rightward into the gap up to its nearest
+ * right-neighbour (or the viewport edge), then downward up to its nearest
+ * below-neighbour, turning the placement into a gap-free wall.
+ *
+ * Growth respects the aspect band for normal tiles; `fill`-placement tiles
+ * (certs, footer) grow freely to mop up leftover space. The bottom edge is left
+ * open (3-sided box): bottom-most tiles are NOT stretched to a common floor, so
+ * the wall stays naturally ragged at the scroll edge.
+ *
+ * Kept OUT of `lpSolve` on purpose: the annealer's cost (notably `deadSpace`)
+ * must see the raw, un-absorbed positions so it optimises real topological
+ * compactness rather than post-fill cosmetics.
+ */
+export function absorbSlack(
+  positions: readonly Position[],
+  tiles: readonly TileMeta[],
+  viewport: Viewport,
+  gutter: number
+): { positions: Position[]; totalHeight: number } {
+  const tileById = new Map<string, TileMeta>(tiles.map((t) => [t.id, t]))
+  const innerRight = viewport.w - gutter
+  const EPS = 0.5
+
+  // Work on a mutable copy; the right/down probes read a frozen snapshot so
+  // one tile's growth never feeds back into another's limit within a pass.
+  const out: Position[] = positions.map((p) => ({ ...p }))
+
+  // ── Pass 1: grow widths rightward ──────────────────────────────────────
+  const beforeW = out.map((p) => ({ ...p }))
+  for (const p of out) {
+    const t = tileById.get(p.id)
+    let limit = innerRight
+    for (const q of beforeW) {
+      if (q.id === p.id) continue
+      const toTheRight = q.x >= p.x + p.w - EPS
+      const vOverlap = q.y < p.y + p.h - EPS && q.y + q.h > p.y + EPS
+      if (toTheRight && vOverlap) limit = Math.min(limit, q.x - gutter)
+    }
+    let newW = Math.max(p.w, limit - p.x)
+    // Cap growth at the reasonable max: rich tiles grow to fill the available
+    // width (fill beats the aspect band here, by design), pebbles barely move.
+    // Fall back to the aspect band only when no measured max is present (tests).
+    let wCap = t?.maxW ?? (t?.aspectRatio ? t.aspectRatio.max * p.h : undefined)
+    // Render-time, viewport-relative cap: a rich (non-pebble) tile may not absorb
+    // past ~half the width, or a narrow screen collapses to a single column.
+    // Lives here (per actual width) so measurement stays viewport-independent.
+    if (t?.placement == null) {
+      const halfW = viewport.w * 0.5
+      wCap = wCap == null ? halfW : Math.min(wCap, halfW)
+    }
+    if (wCap != null) newW = Math.min(newW, wCap)
+    p.w = Math.max(p.w, newW)
+  }
+
+  // ── Pass 2: grow heights downward (uses post-width horizontal overlap) ──
+  const afterW = out.map((p) => ({ ...p }))
+  for (const p of out) {
+    const t = tileById.get(p.id)
+    let limit = Number.POSITIVE_INFINITY
+    for (const q of afterW) {
+      if (q.id === p.id) continue
+      const below = q.y >= p.y + p.h - EPS
+      const hOverlap = q.x < p.x + p.w - EPS && q.x + q.w > p.x + EPS
+      if (below && hOverlap) limit = Math.min(limit, q.y - gutter)
+    }
+    if (Number.isFinite(limit)) {
+      let newH = Math.max(p.h, limit - p.y)
+      // Height growth is largely cosmetic — the main-thread re-fit pass sets the
+      // final height to the content at the packed width — but still cap it at the
+      // reasonable max so the intermediate stays sane.
+      const hCap = t?.maxH ?? (t?.aspectRatio ? p.w / t.aspectRatio.min : undefined)
+      if (hCap != null) newH = Math.min(newH, hCap)
+      p.h = Math.max(p.h, newH)
+    }
+    // limit === Infinity ⇒ bottom-most in its column ⇒ leave height as-is.
+  }
+
+  const totalHeight = Math.max(0, ...out.map((p) => p.y + p.h)) + gutter
+  return { positions: out, totalHeight }
+}
+
 // ──────────────────────────────────────────────────────────────────────
 // helpers
 // ──────────────────────────────────────────────────────────────────────
@@ -186,7 +288,7 @@ function clampToConstraints(
  * Topological longest-path from each tile to compute x (using H edges) or
  * y (using V edges). Edge a→b means b's coordinate ≥ a's coordinate + size(a) + gutter.
  */
-function longestPath(
+export function longestPath(
   allIds: readonly string[],
   edges: ReadonlyArray<[string, string]>,
   size: Map<string, number>,

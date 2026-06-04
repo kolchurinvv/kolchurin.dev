@@ -15,7 +15,7 @@ const routes: RouteInfo[] = [
   { path: "/", requiresWarning: false, description: "Home page" },
   { path: "/grid", requiresWarning: true, description: "Grid layout view" },
   { path: "/grid-v2", requiresWarning: true, description: "Masonry layout view" },
-  { path: "/grid-v4", requiresWarning: true, description: "Priority-anchored layout" },
+  { path: "/bento", requiresWarning: false, description: "Bento layout" },
 ]
 
 const terminalData: TerminalData = {
@@ -70,7 +70,7 @@ describe("terminal-logic", () => {
 
     it("suggests all routes when cd has no argument", () => {
       const suggestions = getSuggestions("cd ", "~", terminalData.directories, undefined, routes)
-      expect(suggestions).toEqual(["~", "grid", "grid-v2", "grid-v4"])
+      expect(suggestions).toEqual(["~", "grid", "grid-v2", "bento"])
     })
 
     it("filters suggestions case-insensitively for routes", () => {
@@ -287,12 +287,13 @@ describe("terminal-logic", () => {
       }
     })
 
-    it("shows warning for /grid-v4 route", () => {
-      const result = executeCommand(makeState(), "cd /grid-v4", terminalData)
-      expect(result.effect?.type).toBe("warningConfirm")
-      if (result.effect?.type === "warningConfirm") {
-        expect(result.effect.route.path).toBe("/grid-v4")
-      }
+    it("navigates to /bento without a warning", () => {
+      const result = executeCommand(makeState(), "cd /bento", terminalData)
+      expect(result.effect).toEqual({
+        type: "navigate",
+        href: "/bento",
+        message: "Navigating to /bento...",
+      })
     })
 
     it("navigates to routes without leading slash", () => {

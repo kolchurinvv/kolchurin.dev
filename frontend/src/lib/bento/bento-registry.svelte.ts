@@ -6,6 +6,10 @@ export interface BentoTileEntry {
   priority: Tier
   minW: number
   minH: number
+  prefW?: number
+  prefH?: number
+  maxW?: number
+  maxH?: number
   aspectRatio?: AspectBand
   cluster?: string
   clusterOrder?: number
@@ -35,6 +39,31 @@ export class BentoRegistry {
     delete this.tiles[id]
     delete this.positions[id]
     this.version++
+  }
+
+  /**
+   * Raise a tile's min dimensions to fit its measured content. Called once by
+   * BentoLayout after a DOM measure pass (post font-load) so the packer never
+   * sizes a tile smaller than its content needs. Intentionally does NOT bump
+   * `version` — measurement feeds the next pack, it should not retrigger one.
+   */
+  applyMeasured(
+    id: string,
+    minW: number,
+    minH: number,
+    prefW: number,
+    prefH: number,
+    maxW: number,
+    maxH: number
+  ): void {
+    const e = this.tiles[id]
+    if (!e) return
+    e.minW = minW
+    e.minH = minH
+    e.prefW = prefW
+    e.prefH = prefH
+    e.maxW = maxW
+    e.maxH = maxH
   }
 
   applyPositions(positions: Position[], wallHeight: number): void {

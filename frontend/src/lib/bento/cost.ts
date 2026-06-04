@@ -204,12 +204,16 @@ export function costShapeVariance(
 }
 
 /**
- * For each cluster, penalty proportional to how spread out its members are.
- * Tightest layouts have all members sharing edges; loose layouts pay quadratically.
+ * Cluster cohesion = members form ONE edge-adjacent group whose bounding box
+ * stays compact. This deliberately rewards CONNECTIVITY + COMPACTNESS rather
+ * than a minimal centroid spread, so a cluster is free to take any tight shape —
+ * 2×2, a 1×4 row, an L, a T — and fill voids, instead of being forced into a
+ * blob. Scattered or snaking arrangements are still penalised.
  */
 export function costCluster(
   positions: readonly Position[],
-  tiles: readonly TileMeta[]
+  tiles: readonly TileMeta[],
+  gutter = 12
 ): number {
   const posMap = posById(positions)
   const clusters = new Map<string, TileMeta[]>()
@@ -218,30 +222,83 @@ export function costCluster(
     if (!clusters.has(t.cluster)) clusters.set(t.cluster, [])
     clusters.get(t.cluster)?.push(t)
   }
+  // Members are "adjacent" if their gap is around the gutter (not exactly 0 —
+  // tiles are always gutter-separated). 1.8× gutter gives a little slack.
+  const tol = gutter * 1.8
   let acc = 0
   for (const [, members] of clusters) {
     if (members.length < 2) continue
-    // Pairwise: penalty = (centroid-distance / typical-tile-extent)^2.
-    // Where typical extent = sqrt(avg area) of cluster members.
-    const avgArea =
-      members.reduce((s, t) => {
-        const p = posMap.get(t.id)
-        return s + (p ? p.w * p.h : 0)
-      }, 0) / members.length
-    const extent = Math.sqrt(Math.max(1, avgArea))
-    for (let i = 0; i < members.length; i++) {
-      for (let j = i + 1; j < members.length; j++) {
-        const pi = posMap.get(members[i].id)
-        const pj = posMap.get(members[j].id)
-        if (!pi || !pj) continue
-        const d = distance(centroid(pi), centroid(pj))
-        const normalized = d / extent
-        // Cohesion sweet spot: ≤ ~1.5 extents apart. Penalty for further.
-        if (normalized > 1.5) acc += (normalized - 1.5) ** 2
+    const ps = members.map((m) => posMap.get(m.id)).filter((p): p is Position => p != null)
+    if (ps.length < 2) continue
+
+    // 1. Connectivity — every member should neighbour the group. Strays cost
+    //    quadratically (one tile drifting off is the worst failure mode).
+    const disconnected = countDisconnected(ps, tol)
+    acc += disconnected * disconnected * 4
+
+    // 2. Compactness — the cluster's bounding box shouldn't be much larger than
+    //    the area its members actually cover. Line/L/T/square all stay ≲ 1.7×;
+    //    a sprawling or snaking chain blows past it.
+    const sumArea = ps.reduce((s, p) => s + p.w * p.h, 0)
+    const minX = Math.min(...ps.map((p) => p.x))
+    const minY = Math.min(...ps.map((p) => p.y))
+    const maxX = Math.max(...ps.map((p) => p.x + p.w))
+    const maxY = Math.max(...ps.map((p) => p.y + p.h))
+    const bboxArea = (maxX - minX) * (maxY - minY)
+    const ratio = sumArea > 0 ? bboxArea / sumArea : 1
+    if (ratio > 1.7) acc += (ratio - 1.7) ** 2
+  }
+  return acc
+}
+
+/** Two tiles neighbour each other if they overlap on one axis and their gap on
+ *  the other axis is within `tol` (≈ a gutter). */
+function clusterAdjacent(a: Position, b: Position, tol: number): boolean {
+  const xOverlap = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x)
+  const yOverlap = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y)
+  const xGap = Math.max(a.x, b.x) - Math.min(a.x + a.w, b.x + b.w)
+  const yGap = Math.max(a.y, b.y) - Math.min(a.y + a.h, b.y + b.h)
+  if (yOverlap > 4 && xGap >= -2 && xGap <= tol) return true // side by side
+  if (xOverlap > 4 && yGap >= -2 && yGap <= tol) return true // stacked
+  return false
+}
+
+/**
+ * Number of cluster members NOT in the largest connected component, where
+ * "connected" means gutter-adjacent (0 ⇒ the whole cluster is one shape).
+ */
+function countDisconnected(ps: readonly Position[], tol: number): number {
+  const n = ps.length
+  const adj: number[][] = ps.map(() => [])
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      if (clusterAdjacent(ps[i], ps[j], tol)) {
+        adj[i].push(j)
+        adj[j].push(i)
       }
     }
   }
-  return acc
+  const seen = new Array<boolean>(n).fill(false)
+  let largest = 0
+  for (let s = 0; s < n; s++) {
+    if (seen[s]) continue
+    let size = 0
+    const stack = [s]
+    seen[s] = true
+    while (stack.length > 0) {
+      const u = stack.pop()
+      if (u === undefined) break
+      size++
+      for (const v of adj[u]) {
+        if (!seen[v]) {
+          seen[v] = true
+          stack.push(v)
+        }
+      }
+    }
+    largest = Math.max(largest, size)
+  }
+  return n - largest
 }
 
 /**
@@ -339,6 +396,27 @@ export function costAnchorRecurrence(
 }
 
 /**
+ * Compactness / dead-space pressure. Returns the fraction of the wall's
+ * bounding area NOT covered by tiles (0 = perfect tessellation, →1 = mostly
+ * whitespace). Without this term the annealer has no incentive to keep the
+ * wall tight, so low-priority tiles sink to the bottom of a tall chain and
+ * leave large empty regions. Evaluated on RAW (pre-slack-absorption) positions
+ * so it measures genuine topological compactness, not post-fill cosmetics.
+ */
+export function costDeadSpace(
+  positions: readonly Position[],
+  viewport: Viewport
+): number {
+  if (positions.length === 0) return 0
+  const wallBottom = Math.max(0, ...positions.map((p) => p.y + p.h))
+  const wallArea = viewport.w * wallBottom
+  if (wallArea <= 0) return 0
+  let tileArea = 0
+  for (const p of positions) tileArea += Math.max(0, p.w) * Math.max(0, p.h)
+  return Math.max(0, Math.min(1, (wallArea - tileArea) / wallArea))
+}
+
+/**
  * Primary + secondary tiles must satisfy `y + h ≤ viewport.h`.
  * Quadratic penalty over the overshoot, summed per tile.
  */
@@ -351,7 +429,9 @@ export function costAboveFold(
   let acc = 0
   for (const p of positions) {
     const t = tileMap.get(p.id)
-    if (!t || !SECONDARY_OR_HIGHER.has(t.priority)) continue
+    // Primary/secondary AND `feature` pebbles (the status badge) want to stay
+    // above the fold — without this the badge sinks to the very bottom.
+    if (!t || !(SECONDARY_OR_HIGHER.has(t.priority) || t.placement === "feature")) continue
     const overshoot = p.y + p.h - viewport.h
     if (overshoot > 0) acc += overshoot * overshoot
   }
@@ -369,6 +449,7 @@ export interface CostInputs {
   adjacency: readonly AdjacencyHint[]
   viewport: Viewport
   gaze: GazePoint
+  gutter?: number
 }
 
 export interface CostResult {
@@ -382,13 +463,14 @@ export function costFn(inputs: CostInputs, weights: CostWeights): CostResult {
     widthOverflow: costWidthOverflow(inputs.positions, inputs.viewport),
     subMin: costSubMin(inputs.positions, inputs.tiles),
     aspectBand: costAspectBand(inputs.positions, inputs.tiles),
-    cluster: costCluster(inputs.positions, inputs.tiles),
+    cluster: costCluster(inputs.positions, inputs.tiles, inputs.gutter ?? 12),
     adjacency: costAdjacency(inputs.positions, inputs.adjacency),
     sizeVariance: costSizeVariance(inputs.positions, inputs.tiles, inputs.sp),
     shapeVariance: costShapeVariance(inputs.positions, inputs.tiles, inputs.sp),
     gaze: costGaze(inputs.positions, inputs.tiles, inputs.gaze),
     anchorRecurrence: costAnchorRecurrence(inputs.positions, inputs.tiles, inputs.viewport),
     aboveFold: costAboveFold(inputs.positions, inputs.tiles, inputs.viewport),
+    deadSpace: costDeadSpace(inputs.positions, inputs.viewport),
   }
   let total = 0
   for (const k of Object.keys(breakdown) as Array<keyof CostWeights>) {

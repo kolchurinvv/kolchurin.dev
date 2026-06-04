@@ -1,71 +1,74 @@
 <script lang="ts">
 import { onMount, type Snippet } from "svelte"
 import { provideBentoRegistry } from "$lib/bento/bento-registry.svelte"
-import { computeGazePoint } from "$lib/layout/gaze"
-import { anneal } from "$lib/bento/annealer"
-import { defaultAnnealConfig } from "$lib/bento/anneal-config"
-import { costFn } from "$lib/bento/cost"
-import { DEFAULT_WEIGHTS } from "$lib/bento/cost-weights"
-import { lpSolve } from "$lib/bento/lp-solver"
-import { SequencePair } from "$lib/bento/sequence-pair"
-import BentoWorker from "$lib/bento/pack.worker?worker"
-import type {
-  AdjacencyHint,
-  GazePoint,
-  PackRequest,
-  TileMeta,
-  Viewport,
-  WorkerMessageOut,
-} from "$lib/bento/types"
+import { constructivePack } from "$lib/bento/constructive"
+import type { AdjacencyHint, Position, TileMeta, Viewport } from "$lib/bento/types"
 
 type Props = {
   children: Snippet
+  /** Kept for API compatibility; the constructive packer uses clusters + reading
+   *  order rather than pairwise adjacency hints. */
   adjacency?: AdjacencyHint[]
   gutter?: number
   mobileBreakpoint?: number
-  animate?: boolean
+  /** Cap the packing width; beyond it the wall is centred. */
+  maxWidth?: number
 }
 
 let {
   children,
-  adjacency = [],
+  adjacency: _adjacency = [],
   gutter = 12,
   mobileBreakpoint = 720,
-  animate = true,
+  maxWidth = 2200,
 }: Props = $props()
 
 const DEFAULT_VIEWPORT: Viewport = { w: 1280, h: 720 }
-const DEFAULT_GAZE: GazePoint = { x: 640, y: 274 }
-const WORKER_IDLE_MS = 30_000
-const ANNEAL_DEBOUNCE_MS = 250
+const RESIZE_DEBOUNCE_MS = 160
+// Width comes from window.innerWidth (scrollbar-state-independent) minus a fixed
+// scrollbar reserve — NOT clientWidth (which shrinks when the scrollbar appears).
+// This keeps the compute width identical whether or not the scrollbar is present,
+// so the layout is deterministic regardless of load path.
+const SCROLLBAR_RESERVE = 16
+// A scrollbar appearing changes the width ~15px; never recompute on that (it
+// could collapse the wall / break scroll). Only react to real resizes.
+const WIDTH_CHANGE_THRESHOLD = 24
+// Viewport-independent content-measure caps → measurements are path-invariant.
+const MAX_TILE_W = 1100
+const MAX_TILE_H = 1400
 
 const registry = provideBentoRegistry()
 
+// Lifecycle: gather → measure → pack (synchronous, fast) → reveal. `revealed`
+// latches true on the first finished layout; before it, tiles are display:none
+// so the first paint never animates from a stale position.
+let revealed = $state(false)
+
 let viewport = $state<Viewport>(DEFAULT_VIEWPORT)
-let gaze = $state<GazePoint>(DEFAULT_GAZE)
-let ready = $state(false)
-let prefersReducedMotion = $state(false)
+// Full available width (≥ viewport.w). Used to centre the wall on huge screens.
+let availableWidth = $state(DEFAULT_VIEWPORT.w)
 
 let containerEl = $state<HTMLDivElement | undefined>()
 let debug = $state(false)
-let debugBreakdown = $state<Record<string, number> | null>(null)
-let worker: Worker | null = null
-let idleTimer: ReturnType<typeof setTimeout> | null = null
-let annealTimer: ReturnType<typeof setTimeout> | null = null
-let rafScheduled = false
-let lastVersion = -1
-let lastRequestId = 0
+let resizeTimer: ReturnType<typeof setTimeout> | null = null
 let resizeObserver: ResizeObserver | null = null
-let currentSp: SequencePair | null = null
+let measuredVersion = -1
+let fontsReady = false
+let startedOnce = false
+let computeToken = 0
+let lastVersion = -1
+let lastObservedWidth = -1
 
 function snapshotTiles(): TileMeta[] {
-  // $state.snapshot strips Svelte 5 reactive proxies so the result is
-  // structured-cloneable for postMessage to the worker.
   return registry.list().map((entry) => ({
     id: entry.id,
     priority: entry.priority,
     minW: entry.minW,
     minH: entry.minH,
+    prefW: entry.prefW,
+    prefH: entry.prefH,
+    maxW: entry.maxW,
+    maxH: entry.maxH,
     aspectRatio: entry.aspectRatio ? $state.snapshot(entry.aspectRatio) : undefined,
     cluster: entry.cluster,
     clusterOrder: entry.clusterOrder,
@@ -73,195 +76,187 @@ function snapshotTiles(): TileMeta[] {
   }))
 }
 
-function buildRequest(): PackRequest {
-  return {
-    viewport: { w: viewport.w, h: viewport.h },
-    gaze: { x: gaze.x, y: gaze.y },
-    gutter,
-    tiles: snapshotTiles(),
-    adjacency: adjacency.map((h) => ({ a: h.a, b: h.b, weight: h.weight })),
-  }
-}
+/**
+ * Measure each tile's intrinsic content box (min-content width, and a balanced
+ * "preferred" width). VIEWPORT-INDEPENDENT (fixed caps), run ONCE — so the
+ * packer's column-span decisions are path-invariant. Heights are NOT taken here;
+ * the packer measures them at the exact width each tile is assigned.
+ */
+function measureTiles(): void {
+  if (typeof document === "undefined" || !fontsReady) return
+  for (const entry of registry.list()) {
+    const el = entry.el
+    if (!el) continue
+    const prev = el.getAttribute("style") ?? ""
+    el.style.cssText =
+      "position:absolute;left:-99999px;top:0;height:auto;max-width:none;display:block;visibility:hidden;box-sizing:border-box;"
 
-function ensureWorker(): Worker | null {
-  if (typeof window === "undefined") return null
-  if (worker) return worker
-  try {
-    worker = new BentoWorker()
-    worker.onmessage = (e: MessageEvent<WorkerMessageOut>) => handleWorkerMessage(e.data)
-    worker.onerror = (err) => console.warn("bento worker error", err)
-  } catch (err) {
-    console.warn("bento worker init failed; using main-thread fallback", err)
-    worker = null
-  }
-  return worker
-}
+    let minW = entry.minW
+    el.style.width = "min-content"
+    minW = Math.min(Math.max(entry.minW, el.offsetWidth + 4), Math.max(entry.minW, MAX_TILE_W))
+    el.style.width = `${minW}px`
+    const hNarrow = el.offsetHeight + 1
+    const ideal = entry.aspectRatio?.ideal ?? 1
+    const balanced = Math.round(Math.sqrt(minW * hNarrow * ideal))
+    const prefW = Math.min(Math.max(balanced, minW), Math.max(minW, MAX_TILE_W))
 
-function scheduleWorkerIdle(): void {
-  if (idleTimer) clearTimeout(idleTimer)
-  idleTimer = setTimeout(() => {
-    if (worker) {
-      worker.terminate()
-      worker = null
-    }
-  }, WORKER_IDLE_MS)
-}
-
-function handleWorkerMessage(msg: WorkerMessageOut): void {
-  if (msg.requestId !== lastRequestId) return // stale
-  if (msg.kind === "annealed") {
-    currentSp = SequencePair.fromData(msg.sp)
-    registry.applyPositions(msg.positions, msg.totalHeight)
-    ready = true
-    if (debug) updateDebugBreakdown()
-    scheduleWorkerIdle()
-  } else if (msg.kind === "relaxed") {
-    registry.applyPositions(msg.positions, msg.totalHeight)
-    ready = true
-    if (debug) updateDebugBreakdown()
-  }
-}
-
-function updateDebugBreakdown(): void {
-  if (!currentSp) return
-  const tiles = snapshotTiles()
-  const positions = Object.values(registry.positions)
-  if (positions.length === 0) return
-  const r = costFn(
-    {
-      positions,
-      tiles,
-      sp: currentSp,
-      adjacency: adjacency.map((h) => ({ a: h.a, b: h.b, weight: h.weight })),
-      viewport: { w: viewport.w, h: viewport.h },
-      gaze: { x: gaze.x, y: gaze.y },
-    },
-    DEFAULT_WEIGHTS
-  )
-  debugBreakdown = { total: r.total, ...r.breakdown }
-}
-
-function runLPOnMainThread(): void {
-  if (!currentSp) {
-    // No SP yet → can't LP. Will get one from the next anneal.
-    return
-  }
-  const tiles = snapshotTiles()
-  const r = lpSolve(currentSp, tiles, viewport, gutter)
-  registry.applyPositions(r.positions, r.totalHeight)
-  ready = true
-}
-
-function requestAnneal(): void {
-  if (annealTimer) clearTimeout(annealTimer)
-  annealTimer = setTimeout(() => {
-    annealTimer = null
-    const w = ensureWorker()
-    const requestId = ++lastRequestId
-    if (w) {
-      w.postMessage({ kind: "anneal", requestId, request: buildRequest() })
-    } else {
-      // Worker-spawn failed (rare). Run synchronously on the main thread.
-      const cfg = defaultAnnealConfig(requestId)
-      const result = anneal(
-        snapshotTiles(),
-        adjacency.map((h) => ({ a: h.a, b: h.b, weight: h.weight })),
-        { w: viewport.w, h: viewport.h },
-        { x: gaze.x, y: gaze.y },
-        gutter,
-        DEFAULT_WEIGHTS,
-        cfg
-      )
-      if (requestId !== lastRequestId) return
-      currentSp = result.sp
-      registry.applyPositions(result.positions, result.totalHeight)
-      ready = true
-      if (debug) updateDebugBreakdown()
-    }
-  }, ANNEAL_DEBOUNCE_MS)
-}
-
-function schedulePack(reset: boolean): void {
-  if (rafScheduled) return
-  rafScheduled = true
-  const fn = () => {
-    rafScheduled = false
-    if (viewport.w < mobileBreakpoint) {
-      registry.setMode("boring")
-      ready = true
-      return
-    }
-    registry.setMode("pack")
-    if (reset || !currentSp) {
-      // No topology yet — trigger an anneal.
-      requestAnneal()
-    } else {
-      // Fast path: re-LP on main thread with the current SP.
-      runLPOnMainThread()
-      // Also kick a debounced re-anneal in case the LP indicates topology drift.
-      requestAnneal()
+    el.setAttribute("style", prev)
+    // prefH/maxW/maxH unused by the constructive packer; carry pref as a sane value.
+    registry.applyMeasured(entry.id, minW, entry.minH, prefW, hNarrow, prefW, hNarrow)
+    if (debug) {
+      // biome-ignore lint/suspicious/noExplicitAny: measurement inspection in ?debug=1
+      const dbg = ((window as any).__bentoMeasured ??= {})
+      dbg[entry.id] = { minW, prefW }
     }
   }
-  if (typeof requestAnimationFrame === "undefined") fn()
-  else requestAnimationFrame(fn)
+  measuredVersion = registry.version
+}
+
+/** DOM-measured content height of a tile rendered at `width` px. */
+function measureContentHeight(id: string, width: number): number {
+  if (typeof document === "undefined") return registry.tiles[id]?.minH ?? 120
+  const el = registry.tiles[id]?.el
+  if (!el) return registry.tiles[id]?.minH ?? 120
+  const prev = el.getAttribute("style") ?? ""
+  el.style.cssText =
+    "position:absolute;left:-99999px;top:0;height:auto;max-width:none;display:block;visibility:hidden;box-sizing:border-box;"
+  el.style.width = `${Math.round(width)}px`
+  const h = el.offsetHeight + 1
+  el.setAttribute("style", prev)
+  return Math.max(40, Math.min(h, MAX_TILE_H))
+}
+
+/** Centre the wall horizontally when filled content is narrower than the screen. */
+function centerPositions(positions: Position[]): Position[] {
+  if (positions.length === 0) return positions
+  const usedRight = Math.max(...positions.map((p) => p.x + p.w))
+  const slack = availableWidth - (usedRight + gutter)
+  if (slack <= 1) return positions
+  const dx = Math.round(slack / 2)
+  return positions.map((p) => ({ ...p, x: p.x + dx }))
 }
 
 function refreshViewport(): void {
   if (typeof window === "undefined") return
-  const el = containerEl
-  const w = el?.clientWidth ?? window.innerWidth
-  viewport = { w, h: window.innerHeight }
-  gaze = computeGazePoint(window)
+  const avail = Math.max(320, window.innerWidth - SCROLLBAR_RESERVE)
+  availableWidth = avail
+  viewport = { w: Math.min(avail, maxWidth), h: window.innerHeight }
   registry.setViewport(viewport)
+}
+
+/** The single entry point: compute and reveal the layout for the current width. */
+function recompute(): void {
+  if (typeof window === "undefined") return
+  refreshViewport()
+
+  if (viewport.w < mobileBreakpoint) {
+    registry.setMode("boring")
+    revealed = true
+    return
+  }
+
+  registry.setMode("pack")
+  if (registry.version !== measuredVersion) measureTiles()
+
+  const token = ++computeToken
+  const tiles = snapshotTiles()
+  const { positions, totalHeight } = constructivePack({
+    tiles,
+    viewport: { w: viewport.w, h: viewport.h },
+    gutter,
+    contentHeight: measureContentHeight,
+  })
+  applyComputed(token, centerPositions(positions), totalHeight)
+}
+
+function applyComputed(token: number, positions: Position[], totalHeight: number): void {
+  if (token !== computeToken) return
+  registry.applyPositions(positions, totalHeight)
+  if (revealed) return // already visible (resize): swap in place
+  // First reveal: positions are now in the DOM while tiles are display:none, so
+  // flipping to display:block on the next frame shows them in place — no slide.
+  if (typeof requestAnimationFrame === "undefined") {
+    revealed = true
+    return
+  }
+  requestAnimationFrame(() => {
+    if (token === computeToken) revealed = true
+  })
+}
+
+function scheduleRecompute(delay: number): void {
+  if (resizeTimer) clearTimeout(resizeTimer)
+  resizeTimer = setTimeout(() => {
+    resizeTimer = null
+    recompute()
+  }, delay)
 }
 
 onMount(() => {
   refreshViewport()
+  lastObservedWidth = typeof window !== "undefined" ? window.innerWidth : availableWidth
+
   if (typeof window !== "undefined") {
-    const params = new URLSearchParams(window.location.search)
-    debug = params.get("debug") === "1"
-    const motion = window.matchMedia("(prefers-reduced-motion: reduce)")
-    prefersReducedMotion = motion.matches
-    motion.addEventListener("change", (e) => {
-      prefersReducedMotion = e.matches
-    })
+    debug = new URLSearchParams(window.location.search).get("debug") === "1"
+
+    const onWidthChange = () => {
+      if (!startedOnce) return
+      const w = window.innerWidth // scrollbar-independent
+      if (Math.abs(w - lastObservedWidth) < WIDTH_CHANGE_THRESHOLD) return
+      lastObservedWidth = w
+      scheduleRecompute(RESIZE_DEBOUNCE_MS)
+    }
     if (containerEl && "ResizeObserver" in window) {
-      resizeObserver = new ResizeObserver(() => {
-        refreshViewport()
-        schedulePack(false)
-      })
+      resizeObserver = new ResizeObserver(onWidthChange)
       resizeObserver.observe(containerEl)
     } else {
-      window.addEventListener("resize", () => {
-        refreshViewport()
-        schedulePack(false)
-      })
+      window.addEventListener("resize", onWidthChange)
     }
   }
-  schedulePack(true)
+
+  // Measure after fonts load (glyph metrics drive measurement). The fallback
+  // computes provisionally if the font hangs; when the font loads we re-measure
+  // and recompute so the layout is correct AND identical to a later cached load.
+  const fonts = typeof document !== "undefined" ? document.fonts : undefined
+  const start = () => {
+    if (startedOnce) return
+    startedOnce = true
+    fontsReady = true
+    lastVersion = registry.version
+    recompute()
+  }
+  if (fonts && fonts.status !== "loaded") {
+    fonts.ready.then(() => {
+      fontsReady = true
+      if (startedOnce) {
+        measuredVersion = -1
+        scheduleRecompute(0)
+      } else start()
+    })
+    setTimeout(start, 600)
+  } else {
+    start()
+  }
+
   return () => {
     if (resizeObserver) resizeObserver.disconnect()
-    if (idleTimer) clearTimeout(idleTimer)
-    if (annealTimer) clearTimeout(annealTimer)
-    if (worker) {
-      worker.terminate()
-      worker = null
-    }
+    if (resizeTimer) clearTimeout(resizeTimer)
   }
 })
 
+// Tile-set changes (after first compute) → re-measure + recompute.
 $effect(() => {
   const v = registry.version
   if (v === lastVersion) return
   lastVersion = v
-  if (registry.list().length === 0) return
-  schedulePack(true)
+  if (!startedOnce || registry.list().length === 0) return
+  measuredVersion = -1
+  scheduleRecompute(0)
 })
 
-const animateAttr = $derived(ready && animate && !prefersReducedMotion ? "on" : "off")
 const containerStyle = $derived.by(() => {
   if (registry.mode === "boring") return ""
-  if (registry.wallHeight > 0) return `height: ${registry.wallHeight}px`
+  if (revealed && registry.wallHeight > 0) return `height: ${registry.wallHeight}px`
   return ""
 })
 </script>
@@ -270,24 +265,17 @@ const containerStyle = $derived.by(() => {
   bind:this={containerEl}
   class="bento-container"
   data-mode={registry.mode}
-  data-animate={animateAttr}
-  data-ready={ready ? "yes" : "no"}
+  data-ready={revealed ? "yes" : "no"}
   style="--bento-gutter: {gutter}px; {containerStyle}"
 >
   {@render children()}
-</div>
 
-{#if debug && debugBreakdown}
-  <aside class="bento-debug" aria-label="cost breakdown">
-    <strong>cost breakdown</strong>
-    {#each Object.entries(debugBreakdown) as [key, val] (key)}
-      <div class:debug-total={key === "total"}>
-        <span>{key}</span>
-        <span>{val.toFixed(2)}</span>
-      </div>
-    {/each}
-  </aside>
-{/if}
+  {#if !revealed}
+    <div class="bento-loading" role="status" aria-label="Loading layout">
+      <div class="spinner" aria-hidden="true"></div>
+    </div>
+  {/if}
+</div>
 
 <style>
 .bento-container {
@@ -295,6 +283,16 @@ const containerStyle = $derived.by(() => {
   width: 100%;
   box-sizing: border-box;
   background: var(--bg-primary);
+}
+
+/* Before reveal: reserve space for the spinner and hide the (unpositioned)
+   tiles. display:none means the first reveal never runs a transition. */
+.bento-container[data-ready="no"] {
+  min-height: 75vh;
+}
+
+.bento-container[data-ready="no"] :global(.bento-tile) {
+  display: none;
 }
 
 .bento-container[data-mode="boring"] {
@@ -312,51 +310,32 @@ const containerStyle = $derived.by(() => {
   height: auto !important;
 }
 
-.bento-container[data-ready="no"] :global(.bento-tile) {
-  visibility: hidden;
-}
-
-.bento-container[data-animate="on"] :global(.bento-tile) {
-  transition:
-    transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
-    width 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
-    height 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-.bento-debug {
-  position: fixed;
-  top: 12px;
-  right: 12px;
-  z-index: 9999;
-  background: rgba(0, 0, 0, 0.85);
-  color: #e5e7eb;
-  font-family: "Space Mono", monospace;
-  font-size: 0.7rem;
-  padding: 0.6rem 0.75rem;
-  border-radius: 6px;
-  border: 1px solid #374151;
-  min-width: 180px;
-  pointer-events: none;
-}
-
-.bento-debug strong {
-  display: block;
-  color: var(--accent);
-  margin-bottom: 0.35rem;
-  font-size: 0.7rem;
-}
-
-.bento-debug div {
+.bento-loading {
+  position: absolute;
+  inset: 0;
   display: flex;
-  justify-content: space-between;
-  gap: 1rem;
+  align-items: center;
+  justify-content: center;
 }
 
-.bento-debug .debug-total {
-  border-top: 1px solid #374151;
-  margin-top: 0.25rem;
-  padding-top: 0.25rem;
-  color: var(--accent);
-  font-weight: 700;
+.spinner {
+  width: 38px;
+  height: 38px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: bento-spin 0.8s linear infinite;
+}
+
+@keyframes bento-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation-duration: 1.6s;
+  }
 }
 </style>

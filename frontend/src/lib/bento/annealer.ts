@@ -38,8 +38,6 @@ export function anneal(
   weights: CostWeights,
   config: AnnealConfig
 ): AnnealResult {
-  const startMs = performance.now()
-
   // Initial SP — tier-major start (heuristic; usually better than fully random).
   let sp = SequencePair.fromTierMajor(tiles, config.rng)
   let solve = lpSolve(sp, tiles, viewport, gutter)
@@ -51,6 +49,7 @@ export function anneal(
       adjacency,
       viewport,
       gaze,
+      gutter,
     },
     weights
   ).total
@@ -61,8 +60,8 @@ export function anneal(
   let bestIter = 0
   let iterations = 0
 
-  // Cache cluster id-lists for the rotateCluster perturbation.
-  const clusterIds = collectClusters(tiles)
+  // Cluster membership for the contiguity-preserving perturbations.
+  const { clusterOf, clusterKeys } = clusterInfo(tiles)
 
   let T = config.initialT
   let plateauCounter = 0
@@ -70,12 +69,14 @@ export function anneal(
     for (let i = 0; i < config.iterationsPerT; i++) {
       iterations++
 
-      // Budget guard
-      if (config.budgetMs != null && performance.now() - startMs > config.budgetMs) {
+      // Stop on a FIXED iteration count, never wall-clock — a time budget runs a
+      // different number of iterations per machine/load, which makes the layout
+      // non-deterministic for the same seed+width. maxIterations keeps it stable.
+      if (config.maxIterations != null && iterations > config.maxIterations) {
         break outer
       }
 
-      const candidate = perturb(sp, clusterIds, config.rng)
+      const candidate = perturb(sp, clusterOf, clusterKeys, config.rng)
       const candSolve = lpSolve(candidate, tiles, viewport, gutter)
       const candCost = costFn(
         {
@@ -85,6 +86,7 @@ export function anneal(
           adjacency,
           viewport,
           gaze,
+          gutter,
         },
         weights
       ).total
@@ -125,26 +127,115 @@ export function anneal(
   }
 }
 
+// ── cluster-contiguity-preserving perturbations ───────────────────────────
+// Every move below keeps each cluster a CONTIGUOUS run in BOTH sequences (it is
+// so in the fromTierMajor seed). Contiguity in both ⇒ the cluster is a spatially
+// separable block, so members can never drift apart — cohesion is structural,
+// not a soft cost the search can violate. The cluster's SHAPE (internal order)
+// and POSITION (unit order) stay free, so it can still take a row / L / T to
+// fill voids.
+
+type ClusterMap = Map<string, string> // tileId → clusterId (only clustered tiles)
+
+/** Split a sequence into units: each non-clustered tile, and each cluster's
+ *  contiguous run, is one unit. */
+function splitUnits(seq: readonly string[], clusterOf: ClusterMap): string[][] {
+  const units: string[][] = []
+  let i = 0
+  while (i < seq.length) {
+    const c = clusterOf.get(seq[i])
+    if (c === undefined) {
+      units.push([seq[i]])
+      i++
+      continue
+    }
+    const run: string[] = []
+    while (i < seq.length && clusterOf.get(seq[i]) === c) {
+      run.push(seq[i])
+      i++
+    }
+    units.push(run)
+  }
+  return units
+}
+
+const unitKey = (unit: string[], clusterOf: ClusterMap): string => clusterOf.get(unit[0]) ?? unit[0]
+
+function twoDistinct(n: number, rng: () => number): [number, number] {
+  const a = Math.floor(rng() * n)
+  let b = Math.floor(rng() * n)
+  while (b === a) b = Math.floor(rng() * n)
+  return [a, b]
+}
+
+/** Swap two whole units within one sequence (clusters move as a block). */
+function swapUnitsInSeq(seq: readonly string[], clusterOf: ClusterMap, rng: () => number): string[] {
+  const units = splitUnits(seq, clusterOf)
+  if (units.length < 2) return seq.slice()
+  const [a, b] = twoDistinct(units.length, rng)
+  ;[units[a], units[b]] = [units[b], units[a]]
+  return units.flat()
+}
+
+/** Swap the same two units (by identity) in BOTH sequences — moves a tile's or a
+ *  whole cluster's overall position. */
+function swapUnitsBoth(sp: SequencePair, clusterOf: ClusterMap, rng: () => number): SequencePair {
+  const up = splitUnits(sp.gammaPlus, clusterOf)
+  const um = splitUnits(sp.gammaMinus, clusterOf)
+  if (up.length < 2) return sp
+  const keys = up.map((u) => unitKey(u, clusterOf))
+  const [a, b] = twoDistinct(keys.length, rng)
+  const swapByKey = (units: string[][], keyA: string, keyB: string) => {
+    const ia = units.findIndex((u) => unitKey(u, clusterOf) === keyA)
+    const ib = units.findIndex((u) => unitKey(u, clusterOf) === keyB)
+    if (ia >= 0 && ib >= 0) [units[ia], units[ib]] = [units[ib], units[ia]]
+  }
+  swapByKey(up, keys[a], keys[b])
+  swapByKey(um, keys[a], keys[b])
+  return new SequencePair(up.flat(), um.flat())
+}
+
+/** Reorder two members WITHIN a cluster's run in one sequence — changes the
+ *  cluster's internal shape (row ↔ L ↔ square) while staying contiguous. */
+function reshapeClusterInSeq(
+  seq: readonly string[],
+  clusterId: string,
+  clusterOf: ClusterMap,
+  rng: () => number
+): string[] {
+  const idxs: number[] = []
+  for (let i = 0; i < seq.length; i++) if (clusterOf.get(seq[i]) === clusterId) idxs.push(i)
+  if (idxs.length < 2) return seq.slice()
+  const out = seq.slice()
+  const [a, b] = twoDistinct(idxs.length, rng)
+  ;[out[idxs[a]], out[idxs[b]]] = [out[idxs[b]], out[idxs[a]]]
+  return out
+}
+
 function perturb(
   sp: SequencePair,
-  clusterIds: ReadonlyArray<readonly string[]>,
+  clusterOf: ClusterMap,
+  clusterKeys: readonly string[],
   rng: () => number
 ): SequencePair {
   const r = rng()
-  // Mix:  50% swapInOne, 30% swapInBoth, 20% rotateCluster (if any cluster has ≥2 members).
-  if (r < 0.5) return sp.swapInOne(rng)
-  if (r < 0.8) return sp.swapInBoth(rng)
-  if (clusterIds.length === 0) return sp.swapInOne(rng)
-  const pick = clusterIds[Math.floor(rng() * clusterIds.length)]
-  return sp.rotateCluster(pick, rng)
+  if (r < 0.3) return new SequencePair(swapUnitsInSeq(sp.gammaPlus, clusterOf, rng), sp.gammaMinus)
+  if (r < 0.6) return new SequencePair(sp.gammaPlus, swapUnitsInSeq(sp.gammaMinus, clusterOf, rng))
+  if (r < 0.8 || clusterKeys.length === 0) return swapUnitsBoth(sp, clusterOf, rng)
+  const pick = clusterKeys[Math.floor(rng() * clusterKeys.length)]
+  return rng() < 0.5
+    ? new SequencePair(reshapeClusterInSeq(sp.gammaPlus, pick, clusterOf, rng), sp.gammaMinus)
+    : new SequencePair(sp.gammaPlus, reshapeClusterInSeq(sp.gammaMinus, pick, clusterOf, rng))
 }
 
-function collectClusters(tiles: readonly TileMeta[]): ReadonlyArray<readonly string[]> {
-  const map = new Map<string, string[]>()
+function clusterInfo(tiles: readonly TileMeta[]): { clusterOf: ClusterMap; clusterKeys: string[] } {
+  const clusterOf: ClusterMap = new Map()
+  const counts = new Map<string, number>()
   for (const t of tiles) {
     if (!t.cluster) continue
-    if (!map.has(t.cluster)) map.set(t.cluster, [])
-    map.get(t.cluster)?.push(t.id)
+    clusterOf.set(t.id, t.cluster)
+    counts.set(t.cluster, (counts.get(t.cluster) ?? 0) + 1)
   }
-  return Array.from(map.values()).filter((c) => c.length >= 2)
+  const clusterKeys = [...counts.entries()].filter(([, n]) => n >= 2).map(([k]) => k)
+  return { clusterOf, clusterKeys }
 }

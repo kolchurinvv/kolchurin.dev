@@ -15,7 +15,7 @@ function fastConfig(seed: number, iterations = 80): AnnealConfig {
     iterationsPerT: iterations,
     plateauPatience: 999, // disable for determinism tests
     rng: mulberry32(seed),
-    budgetMs: 2000,
+    maxIterations: 5000, // high — let the cooling schedule complete
   }
 }
 
@@ -69,10 +69,8 @@ describe("anneal — convergence behavior", () => {
 })
 
 describe("anneal — bento inventory smoke", () => {
-  it("runs to completion against the full 14-tile inventory inside budget", () => {
+  it("runs a fixed iteration count against the full 14-tile inventory", () => {
     const cfg = defaultAnnealConfig(123)
-    cfg.budgetMs = 1200
-    const start = performance.now()
     const result = anneal(
       BENTO_TILES,
       BENTO_ADJACENCY,
@@ -82,11 +80,10 @@ describe("anneal — bento inventory smoke", () => {
       DEFAULT_WEIGHTS,
       cfg
     )
-    const elapsed = performance.now() - start
     expect(result.positions).toHaveLength(BENTO_TILES.length)
     expect(Number.isFinite(result.cost)).toBe(true)
-    expect(elapsed).toBeLessThan(cfg.budgetMs + 500) // some slack for CI variance
-    // Total height should be positive and not absurd
+    // Iteration count is bounded by the fixed cap (deterministic, no wall-clock).
+    expect(result.iterations).toBeLessThanOrEqual((cfg.maxIterations ?? 0) + 1)
     expect(result.totalHeight).toBeGreaterThan(0)
     expect(result.totalHeight).toBeLessThan(20000)
   })

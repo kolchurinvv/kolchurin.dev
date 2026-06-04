@@ -87,8 +87,8 @@ describe("BENTO_TILES inventory", () => {
 })
 
 describe("BENTO_ADJACENCY hints", () => {
-  it("has 13 expanded rows", () => {
-    expect(BENTO_ADJACENCY).toHaveLength(13)
+  it("has 14 expanded rows", () => {
+    expect(BENTO_ADJACENCY).toHaveLength(14)
   })
 
   it("references only real tile ids", () => {

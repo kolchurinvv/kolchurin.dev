@@ -42,16 +42,24 @@ export class SequencePair {
   }
 
   static fromTierMajor(tiles: readonly TileMeta[], rng: () => number): SequencePair {
-    const byTier: Record<Tier, string[]> = {
+    const byTier: Record<Tier, TileMeta[]> = {
       primary: [],
       secondary: [],
       tertiary: [],
       quaternary: [],
     }
-    for (const t of tiles) byTier[t.priority].push(t.id)
-    const ordered: string[] = []
-    for (const tier of TIER_ORDER) ordered.push(...shuffle(byTier[tier], rng))
-    return new SequencePair(ordered, shuffle(ordered, rng))
+    for (const t of tiles) byTier[t.priority].push(t)
+    // Build Γ⁺ and Γ⁻ tier-major; within each tier, keep cluster members as a
+    // CONTIGUOUS run in BOTH sequences. A run that is contiguous in both is a
+    // spatially separable block (no outside tile can interleave it), so the
+    // cluster starts cohesive — the anneal then only refines its shape/position.
+    const plus: string[] = []
+    const minus: string[] = []
+    for (const tier of TIER_ORDER) {
+      plus.push(...clusterGroupedOrder(byTier[tier], rng))
+      minus.push(...clusterGroupedOrder(byTier[tier], rng))
+    }
+    return new SequencePair(plus, minus)
   }
 
   /**
@@ -155,6 +163,30 @@ export class SequencePair {
 }
 
 // ─── helpers ──────────────────────────────────────────────────────────
+
+/**
+ * Order a tier's tiles so each cluster's members sit together as one contiguous
+ * run (group order and within-group order shuffled). Singletons are their own
+ * groups. Used by fromTierMajor to seed cohesive clusters.
+ */
+function clusterGroupedOrder(tierTiles: readonly TileMeta[], rng: () => number): string[] {
+  const groups: string[][] = []
+  const clusterIdx = new Map<string, number>()
+  for (const t of tierTiles) {
+    if (t.cluster != null) {
+      let idx = clusterIdx.get(t.cluster)
+      if (idx === undefined) {
+        idx = groups.length
+        clusterIdx.set(t.cluster, idx)
+        groups.push([])
+      }
+      groups[idx].push(t.id)
+    } else {
+      groups.push([t.id])
+    }
+  }
+  return shuffle(groups, rng).flatMap((g) => shuffle(g, rng))
+}
 
 function indexMap(seq: readonly string[]): Record<string, number> {
   const out: Record<string, number> = {}

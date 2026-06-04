@@ -5,6 +5,7 @@ import {
   costAnchorRecurrence,
   costAspectBand,
   costCluster,
+  costDeadSpace,
   costFn,
   costGaze,
   costOverlap,
@@ -231,6 +232,22 @@ describe("costSizeVariance & costShapeVariance — variance terms (rewards)", ()
       pos("d", 470, 0, 100, 100),
     ]
     expect(costShapeVariance(ps, tiles, sp)).toBeLessThan(0.01)
+  })
+})
+
+describe("costDeadSpace", () => {
+  it("is ~0 when tiles tile the bounding box with no gaps", () => {
+    // Two 100×100 tiles stacked, viewport width 100 → wall 100×200, fully covered.
+    const ps = [pos("a", 0, 0, 100, 100), pos("b", 0, 100, 100, 100)]
+    expect(costDeadSpace(ps, { w: 100, h: 200 })).toBeCloseTo(0, 3)
+  })
+  it("approaches the empty fraction when tiles leave whitespace", () => {
+    // One 100×100 tile in a 200-wide wall whose bottom is 100 → wallArea 20000,
+    // tileArea 10000 → half empty.
+    expect(costDeadSpace([pos("a", 0, 0, 100, 100)], { w: 200, h: 50 })).toBeCloseTo(0.5, 3)
+  })
+  it("is 0 for an empty layout", () => {
+    expect(costDeadSpace([], { w: 200, h: 200 })).toBe(0)
   })
 })
 

@@ -7,19 +7,23 @@ export interface AnnealConfig {
   iterationsPerT: number
   plateauPatience: number
   rng: () => number
-  /** Optional wall-clock budget (ms). Annealer returns best-seen when exceeded. */
-  budgetMs?: number
+  /**
+   * FIXED iteration cap. Termination must be by iteration count, never
+   * wall-clock — a time budget runs a different number of iterations per
+   * machine/CPU-load, making the layout non-deterministic for the same input.
+   */
+  maxIterations?: number
 }
 
-/** Defaults aimed at ~500 ms for N=14 on a laptop. */
-export function defaultAnnealConfig(seed: number = Date.now() & 0xffffffff): AnnealConfig {
+/** Deterministic fixed-iteration schedule (~280 iters, cools 1000→~10). */
+export function defaultAnnealConfig(seed = 1): AnnealConfig {
   return {
     initialT: 1000,
     finalT: 1,
-    cooling: 0.92,
-    iterationsPerT: 30,
-    plateauPatience: 60,
+    cooling: 0.82,
+    iterationsPerT: 12,
+    plateauPatience: 50,
     rng: mulberry32(seed),
-    budgetMs: 500,
+    maxIterations: 280,
   }
 }

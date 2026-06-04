@@ -47,4 +47,26 @@ test.describe("/bento route", () => {
     // standalone Currently Building tile, hence the explicit container).
     await expect(page.locator(".terminal").getByText("3-VPS k3s mesh + Headscale")).toBeVisible()
   })
+
+  test("tiles fit their content without internal scrolling", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await page.goto("/bento")
+    await waitForLayout(page)
+
+    // Heights are content-fitted, so no tile should scroll inside itself
+    // (the wall as a whole scrolls below the fold — that's by design).
+    const tiles = await page.evaluate(() =>
+      Array.from(document.querySelectorAll<HTMLElement>("[data-tile]")).map((el) => ({
+        id: el.dataset.tile,
+        scrollHeight: el.scrollHeight,
+        clientHeight: el.clientHeight,
+      }))
+    )
+    expect(tiles.length).toBe(14)
+    for (const t of tiles) {
+      expect.soft(t.scrollHeight, `tile ${t.id} should not scroll vertically`).toBeLessThanOrEqual(
+        t.clientHeight + 1
+      )
+    }
+  })
 })

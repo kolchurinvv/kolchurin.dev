@@ -128,5 +128,8 @@ export const BENTO_ADJACENCY: AdjacencyHint[] = [
   ...SKILL_IDS.map((id) => ({ a: "experience", b: id, weight: HIGH })),
   { a: "about", b: "header", weight: MEDIUM },
   { a: "header", b: "terminal", weight: HIGH },
+  // Keep the "Available for projects" pebble up near the header/identity instead
+  // of letting it sink to the very bottom of the wall.
+  { a: "status-badge", b: "header", weight: MEDIUM },
   ...SKILL_IDS.map((id) => ({ a: "certs", b: id, weight: LOW })),
 ]

@@ -13,6 +13,22 @@ export interface TileMeta {
   priority: Tier
   minW: number
   minH: number
+  /**
+   * Preferred (content-fitted) size from the DOM measure pass. The LP targets
+   * this instead of a viewport-area quota, so a tile starts sized to its content.
+   * minW/minH remain the hard "won't clip" floor.
+   */
+  prefW?: number
+  prefH?: number
+  /**
+   * Reasonable MAXIMUM size. Slack absorption may grow a tile up to this to fill
+   * available screen estate. Pebble tiles (footer, certs, status) get max ≈ pref
+   * so they stay small; content-rich tiles (terminal, experience, …) get a much
+   * larger max so they expand to use a big screen. Once every tile is at its max
+   * and space remains, the whole wall is centred.
+   */
+  maxW?: number
+  maxH?: number
   aspectRatio?: AspectBand
   cluster?: string
   clusterOrder?: number
