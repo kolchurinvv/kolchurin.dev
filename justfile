@@ -75,6 +75,15 @@ frontend-test:
 frontend-test-e2e:
     cd frontend && bun run test:e2e
 
+# Inspect the /bento layout headlessly (needs `just frontend-dev` running, or
+# pass a preview url). Reports clip/thrash/cohesion/fill/determinism with a
+# PASS/FAIL exit. Args are POSITIONAL: widths, then url, then extra flags.
+#   just bento-probe
+#   just bento-probe 1440,1920
+#   just bento-probe 1920 http://localhost:5179/bento --verbose
+bento-probe widths="1280,1440,1920" url="http://localhost:5179/bento" extra="":
+    cd frontend && node scripts/bento-probe.mjs --url={{url}} --widths={{widths}} {{extra}}
+
 # Run frontend unit/component + e2e tests
 frontend-test-all:
     just frontend-test

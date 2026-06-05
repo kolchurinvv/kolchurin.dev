@@ -1,0 +1,135 @@
+import { HIGH, LOW, MEDIUM } from "./adjacency-weights"
+import type { AdjacencyHint, TileMeta } from "./types"
+
+export const BENTO_TILES: TileMeta[] = [
+  {
+    id: "terminal",
+    priority: "primary",
+    minW: 560,
+    minH: 360,
+    aspectRatio: { min: 1.3, ideal: 1.6, max: 2.5 },
+  },
+  {
+    id: "header",
+    priority: "secondary",
+    minW: 320,
+    minH: 180,
+    aspectRatio: { min: 1.5, ideal: 2.0, max: 3.0 },
+  },
+  {
+    id: "experience",
+    priority: "secondary",
+    minW: 280,
+    minH: 360,
+    aspectRatio: { min: 0.5, ideal: 0.7, max: 1.0 },
+  },
+  {
+    id: "about",
+    priority: "tertiary",
+    minW: 260,
+    minH: 180,
+    aspectRatio: { min: 0.8, ideal: 1.0, max: 1.4 },
+  },
+  {
+    id: "skills-backend",
+    priority: "tertiary",
+    minW: 180,
+    minH: 140,
+    aspectRatio: { min: 0.6, ideal: 0.85, max: 1.2 },
+    cluster: "skills",
+    clusterOrder: 1,
+  },
+  {
+    id: "skills-cloud",
+    priority: "tertiary",
+    minW: 180,
+    minH: 140,
+    aspectRatio: { min: 0.6, ideal: 0.85, max: 1.2 },
+    cluster: "skills",
+    clusterOrder: 2,
+  },
+  {
+    id: "skills-networking",
+    priority: "tertiary",
+    minW: 180,
+    minH: 140,
+    aspectRatio: { min: 0.6, ideal: 0.85, max: 1.2 },
+    cluster: "skills",
+    clusterOrder: 3,
+  },
+  {
+    id: "skills-ai",
+    priority: "tertiary",
+    minW: 180,
+    minH: 140,
+    aspectRatio: { min: 0.6, ideal: 0.85, max: 1.2 },
+    cluster: "skills",
+    clusterOrder: 4,
+  },
+  {
+    id: "projects-currently-building",
+    priority: "tertiary",
+    minW: 240,
+    minH: 200,
+    aspectRatio: { min: 0.7, ideal: 1.0, max: 1.3 },
+    cluster: "projects",
+    clusterOrder: 1,
+  },
+  {
+    id: "projects-ai-lab",
+    priority: "tertiary",
+    minW: 240,
+    minH: 200,
+    aspectRatio: { min: 0.7, ideal: 0.95, max: 1.2 },
+    cluster: "projects",
+    clusterOrder: 2,
+  },
+  {
+    id: "projects-dev-sandbox",
+    priority: "tertiary",
+    minW: 240,
+    minH: 200,
+    aspectRatio: { min: 0.7, ideal: 0.95, max: 1.2 },
+    cluster: "projects",
+    clusterOrder: 3,
+  },
+  {
+    id: "certs",
+    priority: "quaternary",
+    minW: 240,
+    minH: 100,
+    aspectRatio: { min: 1.8, ideal: 2.5, max: 3.5 },
+    placement: "fill",
+  },
+  {
+    id: "status-badge",
+    priority: "quaternary",
+    minW: 160,
+    minH: 36,
+    aspectRatio: { min: 2.0, ideal: 2.8, max: 4.0 },
+    placement: "feature",
+  },
+  {
+    id: "footer",
+    priority: "quaternary",
+    minW: 280,
+    minH: 60,
+    aspectRatio: { min: 2.5, ideal: 4.0, max: 6.0 },
+    placement: "fill",
+  },
+]
+
+const SKILL_IDS = ["skills-backend", "skills-cloud", "skills-networking", "skills-ai"] as const
+
+export const BENTO_ADJACENCY: AdjacencyHint[] = [
+  { a: "projects-currently-building", b: "projects-ai-lab", weight: HIGH },
+  { a: "projects-ai-lab", b: "projects-dev-sandbox", weight: MEDIUM },
+  { a: "projects-currently-building", b: "terminal", weight: MEDIUM },
+  ...SKILL_IDS.map((id) => ({ a: "experience", b: id, weight: HIGH })),
+  { a: "about", b: "header", weight: MEDIUM },
+  { a: "header", b: "terminal", weight: HIGH },
+  // Keep the "Available for projects" pebble up near the header/identity instead
+  // of letting it sink to the very bottom of the wall.
+  { a: "status-badge", b: "header", weight: MEDIUM },
+  ...SKILL_IDS.map((id) => ({ a: "certs", b: id, weight: LOW })),
+]

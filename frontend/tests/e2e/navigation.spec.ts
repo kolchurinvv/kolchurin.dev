@@ -20,10 +20,16 @@ test.describe("layout navigation", () => {
     await expect(page.getByRole("heading", { name: "Technical Skills" })).toBeVisible()
     await expect(page.locator('a[href="/grid-v2"]')).toHaveClass(/active/)
 
-    await page.locator('a[href="/grid-v4"]').click()
-    await expect(gridWarning).toBeVisible()
-    await page.getByRole("button", { name: "Here be dragons..." }).click()
-    await expect(page).toHaveURL(/\/grid-v4$/)
-    await expect(page.locator('a[href="/grid-v4"]')).toHaveClass(/active/)
+    // The bento layout replaces the old grid-v4 slot — no dragon warning.
+    await page.locator('a[href="/bento"]').click()
+    await expect(gridWarning).not.toBeVisible()
+    await expect(page).toHaveURL(/\/bento$/)
+    await expect(page.locator('a[href="/bento"]')).toHaveClass(/active/)
+  })
+
+  test("redirects the old /grid-v4 url to the bento layout", async ({ page }) => {
+    await page.goto("/grid-v4")
+    await expect(page).toHaveURL(/\/bento$/)
+    await expect(page.locator(".bento-container")).toBeAttached()
   })
 })

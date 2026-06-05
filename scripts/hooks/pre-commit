@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+#
+# Pre-commit hook: format staged frontend files with Biome (--write) and abort
+# the commit if the formatter errors (e.g. an unparseable file it cannot format).
+#
+# Versioned in-repo. Enable once per clone with:
+#     git config core.hooksPath scripts/hooks
+# (relative path → resolves to <worktree-root>/scripts/hooks in every worktree).
+#
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+
+# Staged (Added/Copied/Modified) frontend files Biome can format.
+mapfile -t STAGED < <(
+	git diff --cached --name-only --diff-filter=ACM \
+		| grep -E '^frontend/.*\.(ts|tsx|js|jsx|mjs|cjs|json|jsonc|css)$' || true
+)
+
+# Nothing relevant staged → fast no-op.
+[ "${#STAGED[@]}" -eq 0 ] && exit 0
+
+if ! command -v bun >/dev/null 2>&1; then
+	echo "pre-commit: 'bun' not on PATH — run the commit from the nix dev shell so Biome can run. Aborting." >&2
+	exit 1
+fi
+
+# Paths relative to frontend/ for Biome (run from there to pick up biome.json).
+REL=("${STAGED[@]#frontend/}")
+
+if ! (cd "$ROOT/frontend" && bun x biome format --write --no-errors-on-unmatched --files-ignore-unknown=true "${REL[@]}"); then
+	echo "pre-commit: Biome formatter reported errors — aborting commit." >&2
+	exit 1
+fi
+
+# Re-stage only the files Biome actually rewrote, so the commit holds the
+# formatted result without pulling in unrelated working-tree changes.
+for f in "${STAGED[@]}"; do
+	if ! git diff --quiet -- "$f"; then
+		git add -- "$f"
+	fi
+done
+
+exit 0

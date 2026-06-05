@@ -126,3 +126,21 @@ LinkedIn: ${contact.linkedin}`
 export const projectsJson = JSON.stringify(projects, null, 2)
 
 export const aboutText = about
+
+export const currentlyBuilding = `3-VPS k3s mesh + Headscale
+
+Consolidating an ad-hoc OVH + Vultr docker-compose
+into one declarative cluster. Laptop, iPhone, home
+machine on the same tailnet — iPhone resolves through
+cluster Pihole even on cellular.
+
+Off-loading what shouldn't be self-hosted:
+  Postgres  →  Neon
+  backups   →  restic + B2
+
+Phase 2 (eventually): rebuild on Talos.`
+
+export const statusBadge = {
+  label: "Available for projects",
+  state: "available" as const,
+}
