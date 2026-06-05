@@ -1,7 +1,7 @@
 Vladimir Kolchurin
 +420 605 376 615 | vladimir@kolchurin.dev | github.com/kolchurinvv
 Summary
-Backend & Systems-oriented Engineer with a focus on Node.js/Deno/Bun, Go and Cloud Infrastructure. I specialize in building resilient backend architectures, distributed data pipelines, and declarative development environments (NixOS). With a background in enterprise networking and a "DevOps-first" mindset, I excel at solving complex synchronization and infrastructure challenges, moving beyond the UI to engineer robust, high-performance systems.
+Backend & Systems-oriented Engineer with a focus on Node.js/Deno/Bun, Go and Cloud Infrastructure. I specialize in building resilient backend architectures, distributed data pipelines, and declarative development environments (NixOS). With a background in enterprise networking and a "DevOps-first" mindset, I excel at solving complex synchronization and infrastructure challenges, moving beyond the UI to engineer robust, high-performance systems. Most recently I work AI-first: designing spec-driven, lint- and coverage-gated workflows where AI coding agents ship production features safely behind automated review and quality gates — staying deliberately tool-agnostic across agent harnesses rather than locked to a single vendor.
 Technical Skills
 Category	Technologies & Tools
 Backend & Databases	Go, Node.js/Deno/Bun, MongoDB/Mongoose, PostgreSQL
@@ -9,15 +9,19 @@ Cloud & DevOps	Kubernetes, NixOS (Flakes), Podman/Docker, GCP, DigitalOcean, 			
 Scripting & Automation	Nushell, Python, Bash, GCP Cloud Tasks/Scheduler
 Networking & Systems	WireGuard, Linux SysAdmin, Cisco Meraki, Ekahau 	NGINX & Traefik (TLS termination, edge reverse proxy, caching)
 AI Infrastructure	LiteLLM, Ollama, Open-WebUI, Private Hybrid AI Infrastructure
+AI-Assisted Engineering	Agentic / spec-driven development (tool-agnostic across agent harnesses — pi-agent, OpenCode, Claude Code), custom agents/subagents & hooks, MCP, Agentic CI/CD, design-system & coverage lint gates
 Application Dev	Flutter (Mobile), Stripe API, SvelteKit, Qwik.js, React, Vue.js (Nuxt) 	(Familiar with other SSR/API stacks including Django and Flask)
 Experience
 Sticky Ventures (formerly Cometa Group)	September 2024 – Present
-Full-Stack Developer (Flutter, Node.js/Deno, MongoDB, Go)
+Full-Stack Developer (Flutter, Expo/React Native, Node.js/Deno, MongoDB, Go, AI-Assisted Development)
 Engineered a comprehensive licensing and seat-management system, protecting organizational revenue streams. Developed a Flutter-based front-end locking mechanism and a backend validation system utilizing MongoDB transactions and complex aggregation queries to track usage limits, expirations, and manual overrides.
 Architected a resilient local development environment using Podman-compose and sidecar containers to simulate restricted DigitalOcean Kubernetes deployments. This bypassed staging environment dependencies, enabling real-time hot-reloading and direct debugger attachment, significantly accelerating feature delivery.
 Developed an advanced RPE and Wellness reporting engine for organizations. Implemented MongoDB aggregation queries to calculate Total Athletic Load and pre-format raw data, while orchestrating the final processing of derived metrics (Acute/Chronic Load, ACWR) in the Node.js/Deno backend, automatically generating and emailing granular CSV/XLSX reports stored in DigitalOcean Spaces.
 Built robust data integrations and synchronization pipelines using Go and Deno.js. Integrated LeagueApps API and custom .ics calendar parsing, writing Go scripts to deduplicate events and implementing protected-field logic to prevent external syncs from overwriting user-modified data.
 Demonstrated high adaptability and velocity by rapidly upskilling in Dart/Flutter. Transitioned from web to mobile development, merging first production features within 3 months and subsequently independently driving ~32% of the engineering team’s total commit volume over the following year.
+Drove adoption of an AI-first, spec-driven development workflow on a new Expo/React Native (iOS, Android, web) product. Authored the repository's agent contract and a machine-readable design-system token contract, enabling AI coding agents to implement screens at high fidelity behind enforced design-lint, i18n, and test-coverage gates that ratchet upward only — deliberately tool-agnostic across agent harnesses (pi-agent, OpenCode, Claude Code) rather than locked to one vendor.
+Engineered durable agent infrastructure on a bare-repo plus per-branch worktree layout, running specialized subagents (e.g. a design-replication agent with persistent, git-tracked memory) that land work as small, reviewed commits under a strict execution policy (append-only visual golden snapshots, no coverage-threshold relaxations).
+Built agentic CI/CD: automated pull-request review and @-mention triage by AI agents, plus cross-platform E2E with screenshot-diff golden gates (Maestro for Android/iOS, Playwright for web) — running on a self-hosted NixOS runner fleet and a macOS runner with zero hosted-CI minutes.
 Cometa Group	October 2021 - September 2024
 Full-Stack Developer (Vue.js, Node.js)
 Led a massive technical debt reduction initiative, upgrading core frameworks (Webpack 3 to 5, Node 8 to 16, and Firebase SDK 5 to 9) to ensure security compliance and modern build performance.

@@ -22,6 +22,16 @@ export const skills = [
     category: "AI Infrastructure",
     items: ["LiteLLM", "Ollama", "Open-WebUI", "Private AI Deployments"],
   },
+  {
+    category: "AI-Assisted Engineering",
+    items: [
+      "Agentic / spec-driven development",
+      "Tool-agnostic across agent harnesses",
+      "Custom agents, subagents & hooks",
+      "MCP",
+      "Agentic CI/CD & lint-gated quality",
+    ],
+  },
 ]
 
 export const experience = [
@@ -30,6 +40,9 @@ export const experience = [
     period: "September 2024 – Present",
     title: "Full-Stack Developer",
     highlights: [
+      "Drove the shift to an AI-first, spec-driven workflow on a new Expo/React Native product: authored the repo's agent contract + a machine-readable design-system token contract so AI coding agents build UI behind enforced lint & coverage gates",
+      "Stood up durable agent infrastructure on a bare-repo/worktree layout — specialized subagents with persistent memory committing under a strict execution policy (append-only visual goldens, upward-only coverage), staying tool-agnostic across agent harnesses",
+      "Built agentic CI/CD: automated AI pull-request review + cross-platform screenshot-diff E2E (Maestro/Playwright) on a self-hosted NixOS + macOS runner fleet",
       "Architected licensing & seat-management system protecting organizational revenue",
       "Built resilient local dev environments using Podman-compose with hot-reload",
       "Developed RPE/Wellness reporting engine with MongoDB aggregations and auto-generated CSV/XLSX exports",
@@ -81,7 +94,9 @@ export const experience = [
 export const about = `I specialize in building resilient backend architectures, distributed data
 pipelines, and declarative development environments. With a background in
 enterprise networking and a DevOps-first mindset, I excel at solving complex
-synchronization and infrastructure challenges—moving beyond the UI to engineer robust, high-performance systems.`
+synchronization and infrastructure challenges—moving beyond the UI to engineer robust, high-performance systems.
+Lately I work AI-first: designing spec-driven, lint- and coverage-gated workflows where AI coding
+agents ship production features safely—staying tool-agnostic across agent harnesses rather than locked to one vendor.`
 
 export const projects = [
   {

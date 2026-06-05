@@ -95,7 +95,11 @@ function closePdf() {
           enterprise networking and a
           <span class="highlight">DevOps-first</span>
           mindset, I excel at solving complex synchronization and infrastructure challenges—moving
-          beyond the UI to engineer robust, high-performance systems.
+          beyond the UI to engineer robust, high-performance systems. Lately I work
+          <span class="highlight">AI-first</span>—designing spec-driven, lint- and coverage-gated
+          workflows where AI coding agents ship production features safely, staying
+          <span class="highlight">tool-agnostic</span>
+          across agent harnesses rather than locked to one vendor.
         </p>
         <div class="stats">
           <div class="stat">
