@@ -5,7 +5,7 @@ import type { Position } from "$lib/bento/types"
 
 // Deterministic fake content-height (the real one DOM-measures). Varies by width
 // so spanning tiles get a different height than 1-col tiles.
-const fakeHeight = (id: string, w: number): number => 120 + (id.length * 7) + Math.round(w / 10)
+const fakeHeight = (id: string, w: number): number => 120 + id.length * 7 + Math.round(w / 10)
 
 function pack(w: number) {
   return constructivePack({

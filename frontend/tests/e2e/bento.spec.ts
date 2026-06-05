@@ -64,9 +64,9 @@ test.describe("/bento route", () => {
     )
     expect(tiles.length).toBe(14)
     for (const t of tiles) {
-      expect.soft(t.scrollHeight, `tile ${t.id} should not scroll vertically`).toBeLessThanOrEqual(
-        t.clientHeight + 1
-      )
+      expect
+        .soft(t.scrollHeight, `tile ${t.id} should not scroll vertically`)
+        .toBeLessThanOrEqual(t.clientHeight + 1)
     }
   })
 })
