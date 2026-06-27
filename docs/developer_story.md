@@ -164,7 +164,7 @@ keywords:
   - KVN
   - school-wide connections
   - Turbo Pascal
-  - regional Olympiad win → nationals (didn't place)
+  - got through regionals → nationals (didn't place)
   - airplane-seating-matrix problem
   - first cohort of mandatory national standardized exams
   - JavaScript-as-hobby (not yet career)
@@ -194,7 +194,7 @@ Somewhere around that time I had a summer class on website design. It was so, so
 
 At the same time, our lyceum had an informatics class, and we did Turbo Pascal. It was bad, but what it was, was English-language structured in a way that eliminates ambiguity — it translates your intentions into a deterministic pattern. There's that old adage: *the best thing about computers is that they do what you tell them to; the worst thing about computers is that they do what you tell them to.* That's exactly it. You have to structure your thoughts in a way that won't fail. Which was great, because I really loved math. I skipped a lot of school, but math was one of the things I still kind of enjoyed even in high school — I still watch science-educational videos about pure math, even though I'm nowhere near a mathematician. Turbo Pascal scratched the same itch.
 
-We even put a team together and went to compete at the national level. We swept the regional Olympiad — beat everybody locally — and then went on to the nationals. We didn't place. We didn't really achieve anything. But going was the thing. I think it was the end of grade ten or the start of grade eleven; I don't remember exactly. One problem stuck with me: given the dimensions of an airplane cabin, figure out the matrix of seating arrangements — aisles, aisle widths, minimum and maximum legroom per row. That kind of problem just lodged itself in my head.
+We even put a team together and went to compete at the national level. We got through the regional round — nothing steep, but we made it through — and went on to the nationals. We didn't place. We didn't really achieve anything. But going was the thing. I think it was the end of grade ten or the start of grade eleven; I don't remember exactly. One problem stuck with me: given the dimensions of an airplane cabin, figure out the matrix of seating arrangements — aisles, aisle widths, minimum and maximum legroom per row. That kind of problem just lodged itself in my head.
 
 The rest of grade eleven was mostly prep for the new mandatory standardized exams. We were one of the first cohorts that had to take them to be accepted into universities, so they ate the year. We didn't do much programming after the Olympiad.
 
@@ -673,9 +673,9 @@ lasting_impact:
 
 **Where I am now:**
 
-Almost everything I do, I do from a keyboard inside a terminal. The desktop is niri with DankMaterialShell — I left GNOME specifically because I wanted keyboard-first to mean *everywhere*, not just in Vim. The browser is Zen with Vimium. Modifiers are scrambled at the hardware level via keyd so the same physical key means the same thing regardless of the OS underneath. tmux is the session manager; Neovim is the editor; Nushell is the shell; Ghostty is the terminal. They all agree, more or less, that motion is `hjkl`, that escape is `jj`, that the mouse is optional.
+Almost everything I do, I do from a keyboard inside a terminal. The desktop is niri with DankMaterialShell — I left GNOME specifically because I wanted keyboard-first to mean *everywhere*, not just in Vim. The browser is Zen with Vimium. Modifiers are scrambled at the hardware level via keyd so the same physical key means the same thing regardless of the OS underneath. tmux is the session manager; Neovim is the editor; Nushell is the shell; Ghostty is the terminal. They all share vim motions, and the mouse is optional.
 
-I work in TS and Go and Python and a bit of Rust now. The Rust shows up when I need a small daemon that has to be reliable — like the notification-to-window-focus helper I wrote to bridge DMS notifications and niri. Small sharp tools beat big general ones; that's the pattern under everything.
+These days I work primarily in TS, with Go increasingly in the mix. My Python is solid — I had a mid-level Python developer offer about four years ago, though I haven't done much with it since. Rust is more fascination than daily practice: the only Rust in my setup is the small daemon that bridges DMS notifications into niri's window focus, and even that an agent wrote, not me (see Chapter 4). I want to go deeper in it.
 
 I like OSS. I read source. I prefer projects I can fork over services I can only rent. When I host something I rent the smallest VPS I can get away with and run static sites behind systemd units, with Watchtower or webhooks handling rolling updates. I tried Dokploy and bounced — the overhead wasn't earning its keep. The same minimalism shows up in my dotfiles: a selectively-tracked `~/.config` repo, no install scripts, edits take effect immediately.
 
@@ -746,7 +746,7 @@ lasting_impact: []
 
 ### A bigger room
 
-Right now I work in a very small shop — under ten people overall, and that count includes project managers, developers, everyone. I want to land in a *bigger* company next, to see how proper workflows are set up at scale, how proper teams work, what doing this *well* at real size actually looks like — instead of inferring it from blogs and YouTube. If that place runs a mentorship program, I'd happily learn from someone more experienced. I've been the most senior person on too many small teams; that isn't how you keep growing.
+Right now I work in a very small shop — under ten people overall, and that count includes project managers, developers, everyone. I want to land in a *bigger* company next, to see how proper workflows are set up at scale, how proper teams work, what doing this *well* at real size actually looks like — instead of inferring it from blogs and YouTube. If that place runs a mentorship program, I'd happily learn from someone more experienced. Small shops are flat — there's rarely anyone more experienced above you to learn from. That's what I'm after next: people I can grow from, not just inferring what "good at scale" looks like from blogs and YouTube.
 
 ### A real itch — embedded systems and the smart-home void
 

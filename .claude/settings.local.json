@@ -26,10 +26,16 @@
       "Read(//home/_liminor/.claude/projects/-home--liminor-Dev-Projects-kolchurin-dev--bare/**)",
       "Read(//home/_liminor/.claude/**)",
       "Bash(git -c 'user.name=AI Agent \\(kolchurin.dev\\)' -c user.email=ai+agent@kolchurin.dev commit -m ' *)",
-     "Bash(bun add *)",
+      "Bash(bun add *)",
       "Bash(just --list)",
       "Bash(just frontend-check *)",
-      "Bash(just frontend-format *)"
+      "Bash(just frontend-format *)",
+      "Bash(git worktree *)",
+      "Read(//home/_liminor/Dev_Projects/steve/data/application/**)",
+      "Bash(curl -s --max-time 20 \"https://up.gov.cz/api/volna-mista/rest/volna-mista/67234888\" -o /tmp/j88.json)",
+      "Read(//tmp/**)",
+      "Bash(nu -c ' *)",
+      "Bash(nu -c \"ls **/*.jsonl | where name !~ 'subagents' | sort-by modified | first 5 | select name modified | table -e\")"
     ]
   }
 }
