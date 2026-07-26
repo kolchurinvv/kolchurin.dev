@@ -11,13 +11,13 @@ async function waitForLayout(page: Page): Promise<void> {
 }
 
 test.describe("/bento route", () => {
-  test("renders 14 tiles at desktop width", async ({ page }) => {
+  test("renders 15 tiles at desktop width", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 })
     await page.goto("/bento")
     await waitForLayout(page)
 
     const tiles = page.locator("[data-tile]")
-    await expect(tiles).toHaveCount(14)
+    await expect(tiles).toHaveCount(15)
 
     await expect(page.locator('[data-tile="terminal"]')).toBeVisible()
     await expect(page.locator('[data-tile="status-badge"]')).toBeVisible()
@@ -30,8 +30,8 @@ test.describe("/bento route", () => {
     const mode = await page.locator(".bento-container").getAttribute("data-mode")
     expect(["boring", "measuring"]).toContain(mode)
 
-    // 14 tiles still present
-    await expect(page.locator("[data-tile]")).toHaveCount(14)
+    // 15 tiles still present
+    await expect(page.locator("[data-tile]")).toHaveCount(15)
   })
 
   test("terminal cat current.md surfaces the currently-building copy", async ({ page }) => {
@@ -62,7 +62,7 @@ test.describe("/bento route", () => {
         clientHeight: el.clientHeight,
       }))
     )
-    expect(tiles.length).toBe(14)
+    expect(tiles.length).toBe(15)
     for (const t of tiles) {
       expect
         .soft(t.scrollHeight, `tile ${t.id} should not scroll vertically`)
