@@ -96,7 +96,7 @@ const routes: RouteInfo[] = [
   { path: "/", requiresWarning: false, description: "Home page" },
   { path: "/grid", requiresWarning: true, description: "Grid layout view" },
   { path: "/grid-v2", requiresWarning: true, description: "Masonry layout view" },
-  { path: "/bento", requiresWarning: false, description: "Bento layout" },
+  { path: "/bento", requiresWarning: true, description: "Bento layout" },
 ]
 
 function handleCommand(input: string) {

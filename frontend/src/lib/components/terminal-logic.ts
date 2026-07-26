@@ -376,7 +376,7 @@ Navigation:
   cd /          - Go to home page
   cd /grid      - Go to grid view (shows dragon warning)
   cd /grid-v2   - Go to grid-v2 view (shows dragon warning)
-  cd /bento     - Go to the bento layout
+  cd /bento     - Go to bento view (shows dragon warning)
 
 Try: cat skills.json, cat experience.json, about.txt`,
       })

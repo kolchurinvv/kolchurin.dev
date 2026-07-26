@@ -31,7 +31,7 @@ onMount(() => {
     if (!link) return
 
     const href = link.getAttribute("href")
-    if (href === "/grid" || href === "/grid-v2") {
+    if (href === "/grid" || href === "/grid-v2" || href === "/bento") {
       e.preventDefault()
       e.stopImmediatePropagation()
       pendingDest = href
