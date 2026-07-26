@@ -42,4 +42,32 @@ test.describe("dragon warning modal stay safe button", () => {
     await expect(warning).not.toBeVisible()
     await expect(page).toHaveURL("/")
   })
+
+  test("stay safe always navigates to home from /bento", async ({ page }) => {
+    await page.goto("/bento")
+
+    const warning = page.getByRole("dialog", { name: "Experimental Territory" })
+    const staySafeBtn = page.getByRole("button", { name: "Stay safe" })
+
+    await page.locator('a[href="/grid"]').click()
+    await expect(warning).toBeVisible()
+
+    await staySafeBtn.click()
+    await expect(warning).not.toBeVisible()
+    await expect(page).toHaveURL("/")
+  })
+
+  test("stay safe dismisses the /bento warning", async ({ page }) => {
+    await page.goto("/")
+
+    const warning = page.getByRole("dialog", { name: "Experimental Territory" })
+    const staySafeBtn = page.getByRole("button", { name: "Stay safe" })
+
+    await page.locator('a[href="/bento"]').click()
+    await expect(warning).toBeVisible()
+
+    await staySafeBtn.click()
+    await expect(warning).not.toBeVisible()
+    await expect(page).toHaveURL("/")
+  })
 })

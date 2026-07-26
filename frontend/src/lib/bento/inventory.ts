@@ -67,6 +67,15 @@ export const BENTO_TILES: TileMeta[] = [
     clusterOrder: 4,
   },
   {
+    id: "skills-ai-assisted",
+    priority: "tertiary",
+    minW: 180,
+    minH: 140,
+    aspectRatio: { min: 0.6, ideal: 0.85, max: 1.2 },
+    cluster: "skills",
+    clusterOrder: 5,
+  },
+  {
     id: "projects-currently-building",
     priority: "tertiary",
     minW: 240,
@@ -119,7 +128,13 @@ export const BENTO_TILES: TileMeta[] = [
   },
 ]
 
-const SKILL_IDS = ["skills-backend", "skills-cloud", "skills-networking", "skills-ai"] as const
+const SKILL_IDS = [
+  "skills-backend",
+  "skills-cloud",
+  "skills-networking",
+  "skills-ai",
+  "skills-ai-assisted",
+] as const
 
 export const BENTO_ADJACENCY: AdjacencyHint[] = [
   { a: "projects-currently-building", b: "projects-ai-lab", weight: HIGH },
