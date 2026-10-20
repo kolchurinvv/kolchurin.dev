@@ -69,7 +69,7 @@ describe("anneal — convergence behavior", () => {
 })
 
 describe("anneal — bento inventory smoke", () => {
-  it("runs a fixed iteration count against the full 14-tile inventory", () => {
+  it("runs a fixed iteration count against the full bento inventory", () => {
     const cfg = defaultAnnealConfig(123)
     const result = anneal(
       BENTO_TILES,

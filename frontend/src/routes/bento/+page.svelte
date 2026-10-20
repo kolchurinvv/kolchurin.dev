@@ -4,6 +4,7 @@ import BentoLayout from "$lib/components/BentoLayout.svelte"
 import BentoTile from "$lib/components/BentoTile.svelte"
 import Terminal from "$lib/components/Terminal.svelte"
 import { BENTO_ADJACENCY, BENTO_TILES } from "$lib/bento/inventory"
+import { SKILL_CATEGORY_TILE_IDS } from "$lib/bento/skill-map"
 import type { TileMeta } from "$lib/bento/types"
 import { contact, skills, experience, currentlyBuilding, statusBadge } from "$lib/profile"
 import {
@@ -11,15 +12,8 @@ import {
   setupCertificatePreloadOnIntersect,
 } from "$lib/routes/certificates"
 
-const skillCategoryIdMap: Record<string, string> = {
-  "Backend & Databases": "skills-backend",
-  "Cloud & DevOps": "skills-cloud",
-  "Networking & Systems": "skills-networking",
-  "AI Infrastructure": "skills-ai",
-}
-
 // Per-category material icon, matching the homepage's Technical Skills cards.
-const skillIcons = ["dns", "cloud", "router", "psychology"]
+const skillIcons = ["dns", "cloud", "router", "psychology", "auto_awesome"]
 
 // Single source of truth for per-tile packing metadata. The page must pass the
 // inventory's aspect bands through to <BentoTile> — otherwise the packer runs
@@ -236,16 +230,16 @@ function closePdf() {
     </article>
   </BentoTile>
 
-  <!-- ── Skills (4 cluster tiles) ───────────────────────────────────────── -->
+  <!-- ── Skills (one cluster tile per profile category) ──────────────────── -->
   {#each skills as group, idx (group.category)}
     <BentoTile
-      id={skillCategoryIdMap[group.category]}
+      id={SKILL_CATEGORY_TILE_IDS[group.category]}
       priority="tertiary"
       cluster="skills"
       clusterOrder={idx + 1}
       minWidth={180}
       minHeight={140}
-      aspectRatio={meta[skillCategoryIdMap[group.category]].aspectRatio}
+      aspectRatio={meta[SKILL_CATEGORY_TILE_IDS[group.category]].aspectRatio}
       ariaLabelledby={`skill-h-${idx}`}
     >
       <div class="card skill-category">

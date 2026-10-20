@@ -3,11 +3,11 @@ import { BENTO_ADJACENCY, BENTO_TILES } from "$lib/bento/inventory"
 import type { Tier } from "$lib/bento/types"
 
 describe("BENTO_TILES inventory", () => {
-  it("has exactly 14 tiles", () => {
-    expect(BENTO_TILES).toHaveLength(14)
+  it("has exactly 15 tiles", () => {
+    expect(BENTO_TILES).toHaveLength(15)
   })
 
-  it("has the expected tier distribution (1 / 2 / 8 / 3)", () => {
+  it("has the expected tier distribution (1 / 2 / 9 / 3)", () => {
     const counts: Record<Tier, number> = {
       primary: 0,
       secondary: 0,
@@ -15,7 +15,7 @@ describe("BENTO_TILES inventory", () => {
       quaternary: 0,
     }
     for (const t of BENTO_TILES) counts[t.priority]++
-    expect(counts).toEqual({ primary: 1, secondary: 2, tertiary: 8, quaternary: 3 })
+    expect(counts).toEqual({ primary: 1, secondary: 2, tertiary: 9, quaternary: 3 })
   })
 
   it("has the terminal as the only primary tile", () => {
@@ -31,10 +31,10 @@ describe("BENTO_TILES inventory", () => {
   describe("skills cluster", () => {
     const skills = BENTO_TILES.filter((t) => t.cluster === "skills")
 
-    it("has 4 members with clusterOrder 1..4", () => {
-      expect(skills).toHaveLength(4)
+    it("has 5 members with clusterOrder 1..5", () => {
+      expect(skills).toHaveLength(5)
       const orders = skills.map((t) => t.clusterOrder).sort()
-      expect(orders).toEqual([1, 2, 3, 4])
+      expect(orders).toEqual([1, 2, 3, 4, 5])
     })
 
     it("all members are tertiary", () => {
@@ -87,8 +87,8 @@ describe("BENTO_TILES inventory", () => {
 })
 
 describe("BENTO_ADJACENCY hints", () => {
-  it("has 14 expanded rows", () => {
-    expect(BENTO_ADJACENCY).toHaveLength(14)
+  it("has 16 expanded rows", () => {
+    expect(BENTO_ADJACENCY).toHaveLength(16)
   })
 
   it("references only real tile ids", () => {

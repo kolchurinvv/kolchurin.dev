@@ -119,8 +119,16 @@ jobs:
           echo "${{ env.GH_TOKEN }}" | podman login ${{ env.REGISTRY }} \
             -u ${{ github.actor }} --password-stdin
       - name: Build and Push Preview
+        env:
+          # Read through the environment rather than interpolating ${{ }} straight
+          # into the script: it keeps an arbitrary branch name out of the shell,
+          # and bash substitution needs it in a variable anyway.
+          HEAD_REF: ${{ github.head_ref }}
         run: |
-          TAG="preview-${{ github.head_ref }}"
+          # Branches keep their folder-like structure, but an OCI tag may not
+          # contain "/" — flatten it for the tag only: ai/feat/x -> ai-feat-x.
+          TAG="preview-${HEAD_REF//\//-}"
+          echo "Tagging preview image as: $TAG"
           podman build -t ghcr.io/${{ github.repository }}/frontend:${{ github.sha }} -f ./deployment/Dockerfile.frontend ./frontend
           podman tag ghcr.io/${{ github.repository }}/frontend:${{ github.sha }} ghcr.io/${{ github.repository }}/frontend:$TAG
           podman push ghcr.io/${{ github.repository }}/frontend:${{ github.sha }}

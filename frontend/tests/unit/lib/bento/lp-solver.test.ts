@@ -83,7 +83,7 @@ describe("lpSolve — Step 3b (aspect band, viewport fit)", () => {
     expect(ratio).toBeLessThanOrEqual(2.2 + 0.01)
   })
 
-  it("produces valid positions for the 14-tile bento inventory across seeds", () => {
+  it("produces valid positions for the full bento inventory across seeds", () => {
     // NB: this uses the RAW inventory (no DOM measurement), so lpSolve falls back
     // to viewport-area sizing — deliberately large, and a contiguous cluster row
     // can overflow a tight viewport. The annealer explores other topologies and
@@ -123,7 +123,7 @@ describe("lpSolve — Step 3b (aspect band, viewport fit)", () => {
 })
 
 describe("lpSolve — perf (informational, not a strict gate)", () => {
-  it("runs in under 30ms for N=14 (5 trials average)", () => {
+  it("runs in under 30ms for the full inventory (5 trials average)", () => {
     const sp = SequencePair.fromTierMajor(BENTO_TILES, mulberry32(1))
     const viewport = { w: 1440, h: 900 }
     // warm-up
@@ -132,7 +132,7 @@ describe("lpSolve — perf (informational, not a strict gate)", () => {
     for (let i = 0; i < 5; i++) lpSolve(sp, BENTO_TILES, viewport, 12)
     const avg = (performance.now() - start) / 5
     // Generous bound for CI variance; aim is ~1-3ms; flag if >30ms.
-    expect(avg, `avg lpSolve(N=14) was ${avg.toFixed(2)} ms`).toBeLessThan(30)
+    expect(avg, `avg lpSolve(N=${BENTO_TILES.length}) was ${avg.toFixed(2)} ms`).toBeLessThan(30)
   })
 })
 
