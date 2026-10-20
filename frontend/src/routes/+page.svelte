@@ -911,6 +911,16 @@ function closePdf() {
     align-items: center;
   }
 
+  .status-line,
+  .contact-secondary {
+    justify-content: center;
+  }
+
+  .contact-secondary {
+    flex-wrap: wrap;
+    gap: 0.5rem 1.5rem;
+  }
+
   .grid {
     grid-template-columns: 1fr;
   }
@@ -922,12 +932,24 @@ function closePdf() {
 }
 
 @media (max-width: 640px) {
+  /* Top padding clears the fixed .layout-nav, which overlaps the centred avatar here. */
   .header {
-    padding: 3rem 0;
+    padding: 5rem 0 3rem;
   }
 
   .header-text h1 {
     font-size: 2rem;
+  }
+
+  .command-line {
+    flex-wrap: wrap;
+    justify-content: center;
+    row-gap: 0;
+    font-size: 0.85rem;
+  }
+
+  .command-line .value {
+    overflow-wrap: anywhere;
   }
 
   .tagline {
