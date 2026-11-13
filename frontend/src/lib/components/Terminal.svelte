@@ -72,18 +72,32 @@ const directories: Record<string, string[]> = {
     "projects.json",
     "current.md",
   ],
-  "~/projects": ["ai-lab", "dev-sandbox"],
+  "~/projects": ["raspberry-tunnel", "ai-lab", "dev-sandbox"],
+  "~/projects/raspberry-tunnel": ["README.md"],
   "~/projects/ai-lab": ["README.md", "docker-compose.yml"],
   "~/projects/dev-sandbox": ["README.md", "flake.nix"],
 }
 
 const fileContents: Record<string, string> = {
-  "README.md": `# AI Infrastructure Lab
+  "~/projects/raspberry-tunnel/README.md": `# raspberry tunnel
+
+Two Raspberry Pis on NixOS: a TV in one apartment uses
+another apartment's internet over a Headscale tunnel.
+
+Live:   https://rt.kolchurin.dev
+Source: https://github.com/kolchurinvv/raspberry-tunnel`,
+  "~/projects/ai-lab/README.md": `# AI Infrastructure Lab
 
 Multi-node AI inference system with Docker Compose and Traefik.
 
 Run: docker-compose up -d`,
-  "flake.nix": `{ pkgs ? import <nixpkgs> {} }:
+  "~/projects/dev-sandbox/README.md": `# Declarative Development Sandbox
+
+Reproducible dev environment using Nix Flakes with NVIDIA drivers
+and GPU-accelerated Android emulators.
+
+Run: nix develop`,
+  "~/projects/dev-sandbox/flake.nix": `{ pkgs ? import <nixpkgs> {} }:
 pkgs.mkShell {
   buildInputs = with pkgs; [
     podman

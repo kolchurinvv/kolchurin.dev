@@ -100,6 +100,18 @@ agents ship production features safely—staying tool-agnostic across agent harn
 
 export const projects = [
   {
+    name: "Raspberry Tunnel",
+    tags: ["Network", "Raspberry Pi", "NixOS", "Headscale", "Go"],
+    live: "https://rt.kolchurin.dev",
+    source: "https://github.com/kolchurinvv/raspberry-tunnel",
+    highlights: [
+      "Two Raspberry Pi 3 B+ boards on NixOS send one apartment's TV out through another apartment's internet over a Tailscale tunnel coordinated by self-hosted Headscale",
+      "Gateway Pi bridges the TV onto its local network so casting keeps working; nftables keeps it off the other private networks, and it falls back to the local connection after ~20 s if the tunnel drops",
+      "NixOS VM test boots the real Pi roles and Headscale to check traffic paths, failover and power-cut recovery",
+      "Public live-health dashboard: one Go binary that joins the tailnet via tsnet, polls a socket-activated status endpoint on each Pi and renders SVG charts server-side, with tests that keep addresses off the page",
+    ],
+  },
+  {
     name: "Hybrid AI & Infrastructure Lab",
     tags: ["AI", "Docker Compose", "Traefik", "WireGuard"],
     highlights: [
