@@ -56,4 +56,13 @@ describe("profile data", () => {
     )
     expect(JSON.parse(projectsJson)).toEqual(projects)
   })
+
+  test("points the raspberry tunnel project at its live dashboard and source", () => {
+    const tunnel = projects.find((project) => project.name === "Raspberry Tunnel")
+
+    expect(tunnel).toBeDefined()
+    expect(tunnel?.live).toBe("https://rt.kolchurin.dev")
+    expect(tunnel?.source).toBe("https://github.com/kolchurinvv/raspberry-tunnel")
+    expect(tunnel?.highlights.length).toBeGreaterThan(0)
+  })
 })
