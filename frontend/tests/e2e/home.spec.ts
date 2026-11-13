@@ -72,6 +72,16 @@ test.describe("home page", () => {
     expect(overflowing).toEqual([])
   })
 
+  test("terminal shows the raspberry tunnel readme with its live link", async ({ page }) => {
+    await page.goto("/")
+
+    const terminalInput = page.locator(".terminal .hidden-input")
+    await terminalInput.fill("cat projects/raspberry-tunnel/README.md")
+    await terminalInput.press("Enter")
+
+    await expect(page.locator(".terminal").getByText("https://rt.kolchurin.dev")).toBeVisible()
+  })
+
   test("terminal reads each project's own files from inside its folder", async ({ page }) => {
     await page.goto("/")
 
