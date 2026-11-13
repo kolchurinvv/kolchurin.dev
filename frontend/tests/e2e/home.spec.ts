@@ -72,6 +72,29 @@ test.describe("home page", () => {
     expect(overflowing).toEqual([])
   })
 
+  test("terminal reads each project's own files from inside its folder", async ({ page }) => {
+    await page.goto("/")
+
+    const terminal = page.locator(".terminal")
+    const terminalInput = terminal.locator(".hidden-input")
+    const run = async (command: string) => {
+      await terminalInput.fill(command)
+      await terminalInput.press("Enter")
+    }
+
+    await run("cd ~/projects/ai-lab")
+    await run("cat README.md")
+    await expect(terminal.getByText("# AI Infrastructure Lab")).toBeVisible()
+
+    await run("cd ~/projects/dev-sandbox")
+    await run("cat README.md")
+    await expect(terminal.getByText("# Declarative Development Sandbox")).toBeVisible()
+    await run("cat flake.nix")
+    await expect(terminal.getByText("pkgs.mkShell")).toBeVisible()
+
+    await expect(terminal.getByText(/No such file/)).toHaveCount(0)
+  })
+
   test("terminal accepts commands", async ({ page }) => {
     await page.goto("/")
 

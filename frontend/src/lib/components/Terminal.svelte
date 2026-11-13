@@ -78,12 +78,18 @@ const directories: Record<string, string[]> = {
 }
 
 const fileContents: Record<string, string> = {
-  "README.md": `# AI Infrastructure Lab
+  "~/projects/ai-lab/README.md": `# AI Infrastructure Lab
 
 Multi-node AI inference system with Docker Compose and Traefik.
 
 Run: docker-compose up -d`,
-  "flake.nix": `{ pkgs ? import <nixpkgs> {} }:
+  "~/projects/dev-sandbox/README.md": `# Declarative Development Sandbox
+
+Reproducible dev environment using Nix Flakes with NVIDIA drivers
+and GPU-accelerated Android emulators.
+
+Run: nix develop`,
+  "~/projects/dev-sandbox/flake.nix": `{ pkgs ? import <nixpkgs> {} }:
 pkgs.mkShell {
   buildInputs = with pkgs; [
     podman
