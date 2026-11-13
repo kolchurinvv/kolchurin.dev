@@ -24,6 +24,34 @@ describe("home page", () => {
     expect(linkedinLink).toHaveAttribute("rel", "noopener")
   })
 
+  test("renders the raspberry tunnel project with its live dashboard and source links", () => {
+    render(HomePage)
+
+    const card = screen.getByRole("article", { name: "Raspberry Tunnel" })
+
+    const liveLink = within(card).getByRole("link", { name: /rt\.kolchurin\.dev/ })
+    expect(liveLink).toHaveAttribute("href", "https://rt.kolchurin.dev")
+    expect(liveLink).toHaveAttribute("target", "_blank")
+    expect(liveLink).toHaveAttribute("rel", "noopener")
+
+    const sourceLink = within(card).getByRole("link", { name: /source/ })
+    expect(sourceLink).toHaveAttribute("href", "https://github.com/kolchurinvv/raspberry-tunnel")
+    expect(sourceLink).toHaveAttribute("target", "_blank")
+    expect(sourceLink).toHaveAttribute("rel", "noopener")
+  })
+
+  test("lists the raspberry tunnel first among side projects", () => {
+    render(HomePage)
+
+    const section = screen.getByRole("heading", { name: "Side Projects" }).closest("section")
+    expect(section).not.toBeNull()
+
+    const titles = within(section as HTMLElement)
+      .getAllByRole("heading", { level: 3 })
+      .map((heading) => heading.textContent)
+    expect(titles[0]).toBe("Raspberry Tunnel")
+  })
+
   test("opens and closes certificate modal", async () => {
     render(HomePage)
 

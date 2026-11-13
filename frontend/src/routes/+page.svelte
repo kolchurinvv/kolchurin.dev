@@ -194,6 +194,58 @@ function closePdf() {
         <h2 class="section-title">Side Projects</h2>
       </div>
       <div class="grid">
+        <article class="card project-card featured" aria-labelledby="project-raspberry-tunnel">
+          <div class="chip">Network</div>
+          <h3 id="project-raspberry-tunnel">Raspberry Tunnel</h3>
+          <p class="project-stack">
+            <i class="tiny">developer_board</i>
+            Raspberry Pi
+            <span class="separator">•</span>
+            <i class="tiny">ac_unit</i>
+            NixOS
+            <span class="separator">•</span>
+            <i class="tiny">vpn_lock</i>
+            Headscale
+            <span class="separator">•</span>
+            <i class="tiny">code</i>
+            Go
+          </p>
+          <ul class="project-highlights">
+            <li>
+              Two Raspberry Pi 3 B+ boards on NixOS send one apartment's TV out through another
+              apartment's internet over a Tailscale tunnel coordinated by self-hosted Headscale
+            </li>
+            <li>
+              Gateway Pi bridges the TV onto its local network so casting keeps working; nftables
+              keeps it off the other private networks, and it falls back to the local connection
+              after ~20 s if the tunnel drops
+            </li>
+            <li>
+              NixOS VM test boots the real Pi roles and Headscale to check traffic paths, failover
+              and power-cut recovery
+            </li>
+            <li>
+              Public live-health dashboard: one Go binary that joins the tailnet via tsnet, polls a
+              socket-activated status endpoint on each Pi and renders SVG charts server-side, with
+              tests that keep addresses off the page
+            </li>
+          </ul>
+          <div class="project-links">
+            <a href="https://rt.kolchurin.dev" target="_blank" rel="noopener" class="secondary-link">
+              <i class="tiny">monitoring</i>
+              rt.kolchurin.dev
+            </a>
+            <a
+              href="https://github.com/kolchurinvv/raspberry-tunnel"
+              target="_blank"
+              rel="noopener"
+              class="secondary-link"
+            >
+              <i class="tiny">code</i>
+              source
+            </a>
+          </div>
+        </article>
         <article class="card project-card">
           <div class="chip">AI</div>
           <h3>Hybrid AI & Infrastructure Lab</h3>
@@ -831,6 +883,21 @@ function closePdf() {
   position: absolute;
   left: 0;
   color: var(--accent);
+}
+
+.project-card.featured {
+  grid-column: 1 / -1;
+}
+
+.project-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+  font-size: 0.85rem;
 }
 
 .row {
